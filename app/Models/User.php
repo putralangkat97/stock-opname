@@ -31,7 +31,7 @@ class User extends Authenticatable
 
     public function warehouses(): BelongsToMany
     {
-        return $this->belongsToMany(Warehouse::class);
+        return $this->belongsToMany(Warehouse::class, "warehouse_user");
     }
 
     // Convenience helper for Policies — use this instead of querying the pivot directly.

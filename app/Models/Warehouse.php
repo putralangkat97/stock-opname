@@ -43,7 +43,7 @@ class Warehouse extends Model
     // to appear in this pivot for every warehouse.
     public function users(): BelongsToMany
     {
-        return $this->belongsToMany(User::class);
+        return $this->belongsToMany(User::class, "warehouse_user");
     }
 
     public function goodsReceipts(): HasMany
