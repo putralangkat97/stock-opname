@@ -11,6 +11,7 @@ use App\Http\Controllers\RackController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\WarehouseController;
+use App\Http\Controllers\WarehouseTransferController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -45,4 +46,14 @@ Route::middleware(["auth"])->group(function () {
         ->name('goods-issues.approve');
     Route::post('goods-issues/{goods_issue}/cancel', [GoodsIssueController::class, 'cancel'])
         ->name('goods-issues.cancel');
+
+    // Warehouse
+    Route::resource('warehouse-transfers', WarehouseTransferController::class)
+        ->only(['index', 'show', 'store']);
+    Route::post('warehouse-transfers/{warehouse_transfer}/mark-in-transit', [WarehouseTransferController::class, 'markInTransit'])
+        ->name('warehouse-transfers.mark-in-transit');
+    Route::post('warehouse-transfers/{warehouse_transfer}/complete', [WarehouseTransferController::class, 'complete'])
+        ->name('warehouse-transfers.complete');
+    Route::post('warehouse-transfers/{warehouse_transfer}/reject', [WarehouseTransferController::class, 'reject'])
+        ->name('warehouse-transfers.reject');
 });
