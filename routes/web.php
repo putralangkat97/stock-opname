@@ -9,6 +9,8 @@ use App\Http\Controllers\GoodsReceiptController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\RackController;
 use App\Http\Controllers\StockAdjustmentController;
+use App\Http\Controllers\StockOpnameController;
+use App\Http\Controllers\StockOpnameItemController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\WarehouseController;
@@ -65,4 +67,21 @@ Route::middleware(["auth"])->group(function () {
         ->name('stock-adjustments.approve');
     Route::post('stock-adjustments/{stock_adjustment}/reject', [StockAdjustmentController::class, 'reject'])
         ->name('stock-adjustments.reject');
+
+    // Stock Opname
+
+    Route::resource('stock-opnames', StockOpnameController::class)
+        ->only(['index', 'show', 'store']);
+    Route::post('stock-opnames/{stock_opname}/start', [StockOpnameController::class, 'start'])
+        ->name('stock-opnames.start');
+    Route::post('stock-opnames/{stock_opname}/complete', [StockOpnameController::class, 'complete'])
+        ->name('stock-opnames.complete');
+    Route::post('stock-opnames/{stock_opname}/approve', [StockOpnameController::class, 'approve'])
+        ->name('stock-opnames.approve');
+    Route::post('stock-opnames/{stock_opname}/reject', [StockOpnameController::class, 'reject'])
+        ->name('stock-opnames.reject');
+    // Item-level: recording a single line's physical count. Not a full resource
+    // route — this model only ever needs the one custom action, never plain CRUD.
+    Route::post('stock-opname-items/{stock_opname_item}/record-count', [StockOpnameItemController::class, 'recordCount'])
+        ->name('stock-opname-items.record-count');
 });
