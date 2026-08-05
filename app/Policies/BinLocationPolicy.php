@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Models\BinLocation;
+use App\Models\Rack;
 use App\Models\User;
 
 class BinLocationPolicy
@@ -17,9 +18,18 @@ class BinLocationPolicy
         return $user->hasAccessToWarehouse($bin->warehouse);
     }
 
-    public function create(User $user): bool
+    /**
+     * $rack passed as context: Gate::authorize('create', [BinLocation::class, $rack]).
+     */
+    public function create(User $user, ?Rack $rack = null): bool
     {
-        return $user->hasRole('Super Admin') || $user->hasRole('Warehouse Admin');
+        if ($user->hasRole('Super Admin')) {
+            return true;
+        }
+
+        return $user->hasRole('Warehouse Admin')
+            && $rack !== null
+            && $user->hasAccessToWarehouse($rack->warehouse);
     }
 
     public function update(User $user, BinLocation $bin): bool

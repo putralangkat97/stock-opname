@@ -2,9 +2,138 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreGoodsReceiptRequest;
+use App\Http\Requests\UpdateGoodsReceiptRequest;
+use App\Enums\GoodsReceiptStatus;
+use App\Models\GoodsReceipt;
+use App\Models\Product;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class GoodsReceiptController extends Controller
 {
-    //
+    public function index(): Response
+    {
+        $this->authorize('viewAny', GoodsReceipt::class);
+
+        $user = Auth::user();
+        $query = GoodsReceipt::query()->with(['supplier', 'warehouse', 'receivedBy']);
+
+        if (! $user->hasRole('Super Admin')) {
+            $query->whereIn('warehouse_id', $user->warehouses()->pluck('warehouses.id'));
+        }
+
+        return Inertia::render('GoodsReceipts/Index', [
+            'goodsReceipts' => $query->latest('date')->paginate(15),
+        ]);
+    }
+
+    public function show(GoodsReceipt $goodsReceipt): Response
+    {
+        $this->authorize('view', $goodsReceipt);
+
+        return Inertia::render('GoodsReceipts/Show', [
+            'goodsReceipt' => $goodsReceipt->load(['supplier', 'warehouse', 'receivedBy', 'items.product']),
+        ]);
+    }
+
+    public function store(StoreGoodsReceiptRequest $request): RedirectResponse
+    {
+        $this->authorize('create', GoodsReceipt::class);
+
+        $validated = $request->validated();
+
+        $goodsReceipt = DB::transaction(function () use ($validated) {
+            $goodsReceipt = GoodsReceipt::query()->create([
+                'supplier_id' => $validated['supplier_id'],
+                'warehouse_id' => $validated['warehouse_id'],
+                'received_by' => Auth::id(),
+                'receipt_number' => $this->generateReceiptNumber(),
+                'po_number' => $validated['po_number'] ?? null,
+                'date' => $validated['date'],
+                'status' => GoodsReceiptStatus::STATUS_DRAFT,
+                'notes' => $validated['notes'] ?? null,
+            ]);
+
+            $this->syncItems($goodsReceipt, $validated['items']);
+
+            return $goodsReceipt;
+        });
+
+        return redirect()
+            ->route('goods-receipts.show', $goodsReceipt)
+            ->with('success', 'Goods receipt created as Draft.');
+    }
+
+    public function update(UpdateGoodsReceiptRequest $request, GoodsReceipt $goodsReceipt): RedirectResponse
+    {
+        $this->authorize('update', $goodsReceipt);
+
+        $validated = $request->validated();
+
+        DB::transaction(function () use ($goodsReceipt, $validated) {
+            $goodsReceipt->update([
+                'supplier_id' => $validated['supplier_id'],
+                'po_number' => $validated['po_number'] ?? null,
+                'date' => $validated['date'],
+                'notes' => $validated['notes'] ?? null,
+            ]);
+
+            $goodsReceipt->items()->delete();
+            $this->syncItems($goodsReceipt, $validated['items']);
+        });
+
+        return back()->with('success', 'Goods receipt updated.');
+    }
+
+    public function approve(GoodsReceipt $goodsReceipt): RedirectResponse
+    {
+        $this->authorize('approve', $goodsReceipt);
+
+        $goodsReceipt->approve();
+
+        return back()->with('success', 'Goods receipt approved — stock updated.');
+    }
+
+    public function cancel(GoodsReceipt $goodsReceipt): RedirectResponse
+    {
+        $this->authorize('cancel', $goodsReceipt);
+
+        $goodsReceipt->cancel();
+
+        return back()->with('success', 'Goods receipt cancelled.');
+    }
+
+    /**
+     * Rebuilds the total_amount from qty * unit_price on every write — never
+     * trust a total sent from the client.
+     */
+    private function syncItems(GoodsReceipt $goodsReceipt, array $items): void
+    {
+        $total = 0;
+
+        foreach ($items as $item) {
+            $product = Product::query()->findOrFail($item['product_id']);
+            $subtotal = $item['qty'] * $item['unit_price'];
+            $total += $subtotal;
+
+            $goodsReceipt->items()->create([
+                'product_id' => $product->id,
+                'qty' => $item['qty'],
+                'unit_price' => $item['unit_price'],
+                'subtotal' => $subtotal,
+            ]);
+        }
+
+        $goodsReceipt->update(['total_amount' => $total]);
+    }
+
+    private function generateReceiptNumber(): string
+    {
+        return 'GR-'.now()->format('Ymd').'-'.Str::upper(Str::random(5));
+    }
 }

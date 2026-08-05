@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\Product;
 use App\Models\User;
+use App\Models\Warehouse;
 
 class ProductPolicy
 {
@@ -17,9 +18,18 @@ class ProductPolicy
         return $user->hasAccessToWarehouse($product->warehouse);
     }
 
-    public function create(User $user): bool
+    /**
+     * $warehouse passed as context: Gate::authorize('create', [Product::class, $warehouse]).
+     */
+    public function create(User $user, ?Warehouse $warehouse = null): bool
     {
-        return $user->hasRole('Super Admin') || $user->hasRole('Warehouse Admin');
+        if ($user->hasRole('Super Admin')) {
+            return true;
+        }
+
+        return $user->hasRole('Warehouse Admin')
+            && $warehouse !== null
+            && $user->hasAccessToWarehouse($warehouse);
     }
 
     public function update(User $user, Product $product): bool
