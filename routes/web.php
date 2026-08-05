@@ -4,6 +4,7 @@ use App\Http\Controllers\BinLocationController;
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\GoodsIssueController;
 use App\Http\Controllers\GoodsReceiptController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\RackController;
@@ -36,4 +37,12 @@ Route::middleware(["auth"])->group(function () {
         ->name('goods-receipts.approve');
     Route::post('goods-receipts/{goods_receipt}/cancel', [GoodsReceiptController::class, 'cancel'])
         ->name('goods-receipts.cancel');
+
+    // Goods Issue
+    Route::resource('goods-issues', GoodsIssueController::class)
+        ->except(['create', 'edit', 'destroy']);
+    Route::post('goods-issues/{goods_issue}/approve', [GoodsIssueController::class, 'approve'])
+        ->name('goods-issues.approve');
+    Route::post('goods-issues/{goods_issue}/cancel', [GoodsIssueController::class, 'cancel'])
+        ->name('goods-issues.cancel');
 });
