@@ -5,7 +5,7 @@ namespace App\Models;
 use App\Enums\StockAdjustmentStatus;
 use App\Enums\StockAdjustmentType;
 use App\Enums\StockOpnameStatus;
-use App\Models\Concerns\Auditable;
+use App\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -160,7 +160,7 @@ class StockOpname extends Model
                         continue;
                     }
 
-                    $adj = StockAdjustment::create([
+                    $adj = StockAdjustment::query()->create([
                         "warehouse_id" => $this->warehouse_id,
                         "adjusted_by" => $approverId,
                         "adjustment_number" =>

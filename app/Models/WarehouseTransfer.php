@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Enums\WarehouseTransferStatus;
-use App\Models\Concerns\Auditable;
+use App\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -119,7 +119,7 @@ class WarehouseTransfer extends Model
             foreach ($this->items as $item) {
                 $sourceProduct = $item->product;
 
-                $destinationProduct = Product::firstOrCreate(
+                $destinationProduct = Product::query()->firstOrCreate(
                     [
                         "sku" => $sourceProduct->sku,
                         "warehouse_id" => $this->to_warehouse_id,

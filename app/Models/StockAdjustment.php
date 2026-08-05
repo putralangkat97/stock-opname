@@ -5,7 +5,7 @@ namespace App\Models;
 use App\Enums\StockAdjustmentType;
 use App\Enums\StockAdjustmentStatus;
 use App\Enums\StockAdjustmentReason;
-use App\Models\Concerns\Auditable;
+use App\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
