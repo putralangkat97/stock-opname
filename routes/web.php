@@ -8,6 +8,7 @@ use App\Http\Controllers\GoodsIssueController;
 use App\Http\Controllers\GoodsReceiptController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\RackController;
+use App\Http\Controllers\StockAdjustmentController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\WarehouseController;
@@ -56,4 +57,12 @@ Route::middleware(["auth"])->group(function () {
         ->name('warehouse-transfers.complete');
     Route::post('warehouse-transfers/{warehouse_transfer}/reject', [WarehouseTransferController::class, 'reject'])
         ->name('warehouse-transfers.reject');
+
+    // Stock Adjustment
+    Route::resource('stock-adjustments', StockAdjustmentController::class)
+        ->only(['index', 'show', 'store']);
+    Route::post('stock-adjustments/{stock_adjustment}/approve', [StockAdjustmentController::class, 'approve'])
+        ->name('stock-adjustments.approve');
+    Route::post('stock-adjustments/{stock_adjustment}/reject', [StockAdjustmentController::class, 'reject'])
+        ->name('stock-adjustments.reject');
 });
