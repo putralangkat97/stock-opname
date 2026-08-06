@@ -7,6 +7,7 @@ use App\Http\Requests\UpdateGoodsReceiptRequest;
 use App\Enums\GoodsReceiptStatus;
 use App\Models\GoodsReceipt;
 use App\Models\Product;
+use App\Models\Supplier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -23,12 +24,23 @@ class GoodsReceiptController extends Controller
         $user = Auth::user();
         $query = GoodsReceipt::query()->with(['supplier', 'warehouse', 'receivedBy']);
 
+        $warehouses = $user->hasRole('Super Admin')
+            ? Warehouse::query()->orderBy('name')->get(['id', 'code', 'name'])
+            : $user->warehouses()->orderBy('name')->get(['warehouses.id', 'warehouses.code', 'warehouses.name']);
+
         if (! $user->hasRole('Super Admin')) {
-            $query->whereIn('warehouse_id', $user->warehouses()->pluck('warehouses.id'));
+            $query->whereIn('warehouse_id', $warehouses->pluck('id'));
         }
 
-        return Inertia::render('GoodsReceipts/Index', [
+        return Inertia::render('goods-receipts/index', [
             'goodsReceipts' => $query->latest('date')->paginate(15),
+            'suppliers' => Supplier::query()->orderBy('name')->get(['id', 'code', 'name']),
+            'warehouses' => $warehouses,
+            // sku/name only — the Create dialog needs enough to search/pick a
+            // line item, not the full Product payload.
+            'products' => Product::query()
+                ->whereIn('warehouse_id', $warehouses->pluck('id'))
+                ->get(['id', 'sku', 'name', 'warehouse_id', 'cost_price']),
         ]);
     }
 
@@ -36,7 +48,7 @@ class GoodsReceiptController extends Controller
     {
         $this->authorize('view', $goodsReceipt);
 
-        return Inertia::render('GoodsReceipts/Show', [
+        return Inertia::render('goods-receipts/show', [
             'goodsReceipt' => $goodsReceipt->load(['supplier', 'warehouse', 'receivedBy', 'items.product']),
         ]);
     }

@@ -4,7 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreProductRequest;
 use App\Http\Requests\UpdateProductRequest;
+use App\Models\BinLocation;
+use App\Models\Brand;
+use App\Models\Category;
 use App\Models\Product;
+use App\Models\Unit;
 use App\Models\Warehouse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,8 +28,12 @@ class ProductController extends Controller
         // Same list-level scoping pattern as WarehouseController — the Policy's
         // view() only gates a single record, so non-Super-Admins are scoped
         // to their accessible warehouses here.
+        $warehouses = $user->hasRole('Super Admin')
+            ? Warehouse::query()->orderBy('name')->get(['id', 'code', 'name'])
+            : $user->warehouses()->orderBy('name')->get(['warehouses.id', 'warehouses.code', 'warehouses.name']);
+
         if (! $user->hasRole('Super Admin')) {
-            $query->whereIn('warehouse_id', $user->warehouses()->pluck('warehouses.id'));
+            $query->whereIn('warehouse_id', $warehouses->pluck('id'));
         }
 
         if ($request->filled('warehouse_id')) {
@@ -42,9 +50,18 @@ class ProductController extends Controller
                 ->orWhere('sku', 'like', "%{$search}%"));
         }
 
-        return Inertia::render('Products/Index', [
+        return Inertia::render('products/index', [
             'products' => $query->orderBy('name')->paginate(15)->withQueryString(),
             'filters' => $request->only(['warehouse_id', 'category_id', 'search']),
+            // Reference lists for the Create/Edit dialog selects — scoped to
+            // the same warehouses the user can already see products in.
+            'categories' => Category::query()->orderBy('name')->get(['id', 'code', 'name']),
+            'brands' => Brand::query()->orderBy('name')->get(['id', 'code', 'name']),
+            'units' => Unit::query()->orderBy('name')->get(['id', 'code', 'name', 'symbol']),
+            'warehouses' => $warehouses,
+            'binLocations' => BinLocation::query()
+                ->whereIn('warehouse_id', $warehouses->pluck('id'))
+                ->get(['id', 'code', 'warehouse_id']),
         ]);
     }
 
@@ -52,7 +69,7 @@ class ProductController extends Controller
     {
         $this->authorize('view', $product);
 
-        return Inertia::render('Products/Show', [
+        return Inertia::render('products/show', [
             'product' => $product->load(['category', 'brand', 'unit', 'warehouse', 'binLocation']),
         ]);
     }
