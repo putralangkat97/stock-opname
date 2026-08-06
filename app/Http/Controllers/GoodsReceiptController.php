@@ -8,6 +8,7 @@ use App\Enums\GoodsReceiptStatus;
 use App\Models\GoodsReceipt;
 use App\Models\Product;
 use App\Models\Supplier;
+use App\Models\Warehouse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -19,10 +20,10 @@ class GoodsReceiptController extends Controller
 {
     public function index(): Response
     {
-        $this->authorize('viewAny', GoodsReceipt::class);
+        $this->authorize('viewAny', GoodsIssue::class);
 
         $user = Auth::user();
-        $query = GoodsReceipt::query()->with(['supplier', 'warehouse', 'receivedBy']);
+        $query = GoodsIssue::query()->with(['customer', 'warehouse', 'issuedBy']);
 
         $warehouses = $user->hasRole('Super Admin')
             ? Warehouse::query()->orderBy('name')->get(['id', 'code', 'name'])
@@ -32,99 +33,103 @@ class GoodsReceiptController extends Controller
             $query->whereIn('warehouse_id', $warehouses->pluck('id'));
         }
 
-        return Inertia::render('goods-receipts/index', [
-            'goodsReceipts' => $query->latest('date')->paginate(15),
-            'suppliers' => Supplier::query()->orderBy('name')->get(['id', 'code', 'name']),
+        return Inertia::render('goods-issues/index', [
+            'goodsIssues' => $query->latest('date')->paginate(15),
+            'customers' => Customer::query()->orderBy('name')->get(['id', 'code', 'name']),
             'warehouses' => $warehouses,
-            // sku/name only — the Create dialog needs enough to search/pick a
-            // line item, not the full Product payload.
+            // 'stock' included so the form can warn before submitting a qty
+            // the product doesn't have — the real guard is still server-side
+            // in GoodsIssue::approve(), this is just a UX nicety.
             'products' => Product::query()
                 ->whereIn('warehouse_id', $warehouses->pluck('id'))
-                ->get(['id', 'sku', 'name', 'warehouse_id', 'cost_price']),
+                ->get(['id', 'sku', 'name', 'warehouse_id', 'stock', 'selling_price']),
         ]);
     }
 
-    public function show(GoodsReceipt $goodsReceipt): Response
+    public function show(GoodsIssue $goodsIssue): Response
     {
-        $this->authorize('view', $goodsReceipt);
+        $this->authorize('view', $goodsIssue);
 
-        return Inertia::render('goods-receipts/show', [
-            'goodsReceipt' => $goodsReceipt->load(['supplier', 'warehouse', 'receivedBy', 'items.product']),
+        return Inertia::render('goods-issues/show', [
+            'goodsIssue' => $goodsIssue->load(['customer', 'warehouse', 'issuedBy', 'items.product']),
         ]);
     }
 
-    public function store(StoreGoodsReceiptRequest $request): RedirectResponse
+    public function store(StoreGoodsIssueRequest $request): RedirectResponse
     {
-        $this->authorize('create', GoodsReceipt::class);
+        $this->authorize('create', GoodsIssue::class);
 
         $validated = $request->validated();
 
-        $goodsReceipt = DB::transaction(function () use ($validated) {
-            $goodsReceipt = GoodsReceipt::query()->create([
-                'supplier_id' => $validated['supplier_id'],
+        $goodsIssue = DB::transaction(function () use ($validated) {
+            $goodsIssue = GoodsIssue::query()->create([
+                'customer_id' => $validated['customer_id'],
                 'warehouse_id' => $validated['warehouse_id'],
-                'received_by' => Auth::id(),
-                'receipt_number' => $this->generateReceiptNumber(),
-                'po_number' => $validated['po_number'] ?? null,
+                'issued_by' => Auth::id(),
+                'issue_number' => $this->generateIssueNumber(),
+                'so_number' => $validated['so_number'] ?? null,
                 'date' => $validated['date'],
-                'status' => GoodsReceiptStatus::STATUS_DRAFT,
+                'status' => GoodsIssueStatus::STATUS_DRAFT,
                 'notes' => $validated['notes'] ?? null,
             ]);
 
-            $this->syncItems($goodsReceipt, $validated['items']);
+            $this->syncItems($goodsIssue, $validated['items']);
 
-            return $goodsReceipt;
+            return $goodsIssue;
         });
 
         return redirect()
-            ->route('goods-receipts.show', $goodsReceipt)
-            ->with('success', 'Goods receipt created as Draft.');
+            ->route('goods-issues.show', $goodsIssue)
+            ->with('success', 'Goods issue created as Draft.');
     }
 
-    public function update(UpdateGoodsReceiptRequest $request, GoodsReceipt $goodsReceipt): RedirectResponse
+    public function update(UpdateGoodsIssueRequest $request, GoodsIssue $goodsIssue): RedirectResponse
     {
-        $this->authorize('update', $goodsReceipt);
+        $this->authorize('update', $goodsIssue);
 
         $validated = $request->validated();
 
-        DB::transaction(function () use ($goodsReceipt, $validated) {
-            $goodsReceipt->update([
-                'supplier_id' => $validated['supplier_id'],
-                'po_number' => $validated['po_number'] ?? null,
+        DB::transaction(function () use ($goodsIssue, $validated) {
+            $goodsIssue->update([
+                'customer_id' => $validated['customer_id'],
+                'so_number' => $validated['so_number'] ?? null,
                 'date' => $validated['date'],
                 'notes' => $validated['notes'] ?? null,
             ]);
 
-            $goodsReceipt->items()->delete();
-            $this->syncItems($goodsReceipt, $validated['items']);
+            $goodsIssue->items()->delete();
+            $this->syncItems($goodsIssue, $validated['items']);
         });
 
-        return back()->with('success', 'Goods receipt updated.');
+        return back()->with('success', 'Goods issue updated.');
     }
 
-    public function approve(GoodsReceipt $goodsReceipt): RedirectResponse
+    public function approve(GoodsIssue $goodsIssue): RedirectResponse
     {
-        $this->authorize('approve', $goodsReceipt);
+        $this->authorize('approve', $goodsIssue);
 
-        $goodsReceipt->approve();
+        try {
+            $goodsIssue->approve();
+        } catch (\RuntimeException $e) {
+            // Insufficient stock, or wrong status — a real business-rule
+            // rejection, not a bug. Surface it as a flash error rather than
+            // a raw 500/Inertia error modal.
+            return back()->with('error', $e->getMessage());
+        }
 
-        return back()->with('success', 'Goods receipt approved — stock updated.');
+        return back()->with('success', 'Goods issue approved — stock updated.');
     }
 
-    public function cancel(GoodsReceipt $goodsReceipt): RedirectResponse
+    public function cancel(GoodsIssue $goodsIssue): RedirectResponse
     {
-        $this->authorize('cancel', $goodsReceipt);
+        $this->authorize('cancel', $goodsIssue);
 
-        $goodsReceipt->cancel();
+        $goodsIssue->cancel();
 
-        return back()->with('success', 'Goods receipt cancelled.');
+        return back()->with('success', 'Goods issue cancelled.');
     }
 
-    /**
-     * Rebuilds the total_amount from qty * unit_price on every write — never
-     * trust a total sent from the client.
-     */
-    private function syncItems(GoodsReceipt $goodsReceipt, array $items): void
+    private function syncItems(GoodsIssue $goodsIssue, array $items): void
     {
         $total = 0;
 
@@ -133,7 +138,7 @@ class GoodsReceiptController extends Controller
             $subtotal = $item['qty'] * $item['unit_price'];
             $total += $subtotal;
 
-            $goodsReceipt->items()->create([
+            $goodsIssue->items()->create([
                 'product_id' => $product->id,
                 'qty' => $item['qty'],
                 'unit_price' => $item['unit_price'],
@@ -141,11 +146,11 @@ class GoodsReceiptController extends Controller
             ]);
         }
 
-        $goodsReceipt->update(['total_amount' => $total]);
+        $goodsIssue->update(['total_amount' => $total]);
     }
 
-    private function generateReceiptNumber(): string
+    private function generateIssueNumber(): string
     {
-        return 'GR-'.now()->format('Ymd').'-'.Str::upper(Str::random(5));
+        return 'GI-'.now()->format('Ymd').'-'.Str::upper(Str::random(5));
     }
 }

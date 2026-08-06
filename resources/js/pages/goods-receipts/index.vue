@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { router, useForm, usePage, Link } from "@inertiajs/vue3";
+import { useForm, usePage, Link } from "@inertiajs/vue3";
 import { toast } from "vue-sonner";
 import AppLayout from "@/layouts/app-layout.vue";
 import { Button } from "@/components/ui/button";
@@ -31,9 +31,9 @@ import {
 } from "@/components/ui/select";
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import type {
-    GoodsReceipt,
-    GoodsReceiptStatusValue,
-    Supplier,
+    GoodsIssue,
+    GoodsIssueStatusValue,
+    Customer,
     Warehouse,
 } from "@/types/models";
 
@@ -42,17 +42,18 @@ interface SimpleProduct {
     sku: string;
     name: string;
     warehouse_id: number;
-    cost_price: string;
+    stock: number;
+    selling_price: string;
 }
 
 const props = defineProps<{
-    goodsReceipts: { data: GoodsReceipt[] };
-    suppliers: Supplier[];
+    goodsIssues: { data: GoodsIssue[] };
+    customers: Customer[];
     warehouses: Warehouse[];
     products: SimpleProduct[];
 }>();
 
-const breadcrumbs = [{ label: "Goods Receipts", href: "/goods-receipts" }];
+const breadcrumbs = [{ label: "Goods Issues", href: "/goods-issues" }];
 
 const page = usePage();
 watch(
@@ -64,9 +65,9 @@ watch(
     { immediate: true },
 );
 
-function statusVariant(status: GoodsReceiptStatusValue) {
+function statusVariant(status: GoodsIssueStatusValue) {
     if (status === "Cancelled") return "destructive";
-    if (status === "Received") return "default";
+    if (status === "Issued") return "default";
     return "secondary"; // Draft
 }
 
@@ -80,9 +81,9 @@ interface DraftLine {
 }
 
 const form = useForm({
-    supplier_id: "",
+    customer_id: "",
     warehouse_id: "",
-    po_number: "",
+    so_number: "",
     date: new Date().toISOString().slice(0, 10),
     notes: "",
     items: [{ product_id: "", qty: 1, unit_price: 0 }] as DraftLine[],
@@ -93,6 +94,11 @@ const productsForSelectedWarehouse = computed(() =>
         (p) => String(p.warehouse_id) === String(form.warehouse_id),
     ),
 );
+
+function stockFor(productId: string): number | null {
+    const product = props.products.find((p) => String(p.id) === productId);
+    return product ? product.stock : null;
+}
 
 function openCreateDialog() {
     form.reset();
@@ -111,7 +117,7 @@ function removeLine(index: number) {
 
 function onProductPicked(index: number, productId: string) {
     const product = props.products.find((p) => String(p.id) === productId);
-    if (product) form.items[index].unit_price = Number(product.cost_price);
+    if (product) form.items[index].unit_price = Number(product.selling_price);
 }
 
 const estimatedTotal = computed(() =>
@@ -119,7 +125,7 @@ const estimatedTotal = computed(() =>
 );
 
 function submit() {
-    form.post("/goods-receipts", {
+    form.post("/goods-issues", {
         onSuccess: () => (dialogOpen.value = false),
     });
 }
@@ -129,15 +135,15 @@ function submit() {
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex flex-col gap-4">
             <div class="flex items-center justify-between">
-                <h1 class="text-xl font-semibold">Goods Receipts</h1>
-                <Button @click="openCreateDialog">New Receipt</Button>
+                <h1 class="text-xl font-semibold">Goods Issues</h1>
+                <Button @click="openCreateDialog">New Issue</Button>
             </div>
 
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>Receipt #</TableHead>
-                        <TableHead>Supplier</TableHead>
+                        <TableHead>Issue #</TableHead>
+                        <TableHead>Customer</TableHead>
                         <TableHead>Warehouse</TableHead>
                         <TableHead>Date</TableHead>
                         <TableHead>Total</TableHead>
@@ -147,29 +153,26 @@ function submit() {
                 </TableHeader>
                 <TableBody>
                     <TableEmpty
-                        v-if="goodsReceipts.data.length === 0"
+                        v-if="goodsIssues.data.length === 0"
                         :colspan="7"
                     >
-                        No goods receipts yet.
+                        No goods issues yet.
                     </TableEmpty>
-                    <TableRow
-                        v-for="receipt in goodsReceipts.data"
-                        :key="receipt.id"
-                    >
+                    <TableRow v-for="issue in goodsIssues.data" :key="issue.id">
                         <TableCell class="font-mono text-sm">
-                            {{ receipt.receipt_number }}
+                            {{ issue.issue_number }}
                         </TableCell>
-                        <TableCell>{{ receipt.supplier.name }}</TableCell>
-                        <TableCell>{{ receipt.warehouse.name }}</TableCell>
-                        <TableCell>{{ receipt.date }}</TableCell>
-                        <TableCell>{{ receipt.total_amount }}</TableCell>
+                        <TableCell>{{ issue.customer.name }}</TableCell>
+                        <TableCell>{{ issue.warehouse.name }}</TableCell>
+                        <TableCell>{{ issue.date }}</TableCell>
+                        <TableCell>{{ issue.total_amount }}</TableCell>
                         <TableCell>
-                            <Badge :variant="statusVariant(receipt.status)">
-                                {{ receipt.status }}
+                            <Badge :variant="statusVariant(issue.status)">
+                                {{ issue.status }}
                             </Badge>
                         </TableCell>
                         <TableCell class="text-right">
-                            <Link :href="`/goods-receipts/${receipt.id}`">
+                            <Link :href="`/goods-issues/${issue.id}`">
                                 <Button variant="outline" size="sm">
                                     View
                                 </Button>
@@ -184,7 +187,7 @@ function submit() {
         <Dialog v-model:open="dialogOpen">
             <DialogContent class="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
                 <DialogHeader>
-                    <DialogTitle>New Goods Receipt</DialogTitle>
+                    <DialogTitle>New Goods Issue</DialogTitle>
                 </DialogHeader>
 
                 <form class="flex flex-col gap-4" @submit.prevent="submit">
@@ -211,29 +214,29 @@ function submit() {
                         </Field>
 
                         <Field>
-                            <FieldLabel>Supplier</FieldLabel>
-                            <Select v-model="form.supplier_id">
+                            <FieldLabel>Customer</FieldLabel>
+                            <Select v-model="form.customer_id">
                                 <SelectTrigger>
                                     <SelectValue
-                                        placeholder="Select supplier"
+                                        placeholder="Select customer"
                                     />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem
-                                        v-for="s in suppliers"
-                                        :key="s.id"
-                                        :value="String(s.id)"
+                                        v-for="c in customers"
+                                        :key="c.id"
+                                        :value="String(c.id)"
                                     >
-                                        {{ s.name }}
+                                        {{ c.name }}
                                     </SelectItem>
                                 </SelectContent>
                             </Select>
-                            <FieldError :errors="[form.errors.supplier_id]" />
+                            <FieldError :errors="[form.errors.customer_id]" />
                         </Field>
 
                         <Field>
-                            <FieldLabel>PO Number (optional)</FieldLabel>
-                            <Input v-model="form.po_number" />
+                            <FieldLabel>SO Number (optional)</FieldLabel>
+                            <Input v-model="form.so_number" />
                         </Field>
 
                         <Field>
@@ -260,58 +263,78 @@ function submit() {
                         <div
                             v-for="(line, index) in form.items"
                             :key="index"
-                            class="grid grid-cols-[2fr_1fr_1fr_auto] items-end gap-2"
+                            class="flex flex-col gap-1"
                         >
-                            <Field>
-                                <Select
-                                    v-model="line.product_id"
-                                    @update:model-value="
-                                        (v) =>
-                                            onProductPicked(index, v as string)
-                                    "
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue
-                                            placeholder="Select product"
-                                        />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem
-                                            v-for="p in productsForSelectedWarehouse"
-                                            :key="p.id"
-                                            :value="String(p.id)"
-                                        >
-                                            {{ p.sku }} — {{ p.name }}
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </Field>
-                            <Field>
-                                <Input
-                                    v-model.number="line.qty"
-                                    type="number"
-                                    min="1"
-                                    placeholder="Qty"
-                                />
-                            </Field>
-                            <Field>
-                                <Input
-                                    v-model.number="line.unit_price"
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    placeholder="Unit price"
-                                />
-                            </Field>
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon-sm"
-                                :disabled="form.items.length === 1"
-                                @click="removeLine(index)"
+                            <div
+                                class="grid grid-cols-[2fr_1fr_1fr_auto] items-end gap-2"
                             >
-                                ✕
-                            </Button>
+                                <Field>
+                                    <Select
+                                        v-model="line.product_id"
+                                        @update:model-value="
+                                            (v) =>
+                                                onProductPicked(
+                                                    index,
+                                                    v as string,
+                                                )
+                                        "
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue
+                                                placeholder="Select product"
+                                            />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem
+                                                v-for="p in productsForSelectedWarehouse"
+                                                :key="p.id"
+                                                :value="String(p.id)"
+                                            >
+                                                {{ p.sku }} — {{ p.name }} ({{
+                                                    p.stock
+                                                }}
+                                                in stock)
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </Field>
+                                <Field>
+                                    <Input
+                                        v-model.number="line.qty"
+                                        type="number"
+                                        min="1"
+                                        placeholder="Qty"
+                                    />
+                                </Field>
+                                <Field>
+                                    <Input
+                                        v-model.number="line.unit_price"
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        placeholder="Unit price"
+                                    />
+                                </Field>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    :disabled="form.items.length === 1"
+                                    @click="removeLine(index)"
+                                >
+                                    ✕
+                                </Button>
+                            </div>
+                            <p
+                                v-if="
+                                    stockFor(line.product_id) !== null &&
+                                    line.qty > stockFor(line.product_id)!
+                                "
+                                class="text-sm text-destructive"
+                            >
+                                Only {{ stockFor(line.product_id) }} in stock —
+                                this will be rejected on approval.
+                            </p>
                         </div>
                         <FieldError :errors="[form.errors.items]" />
 

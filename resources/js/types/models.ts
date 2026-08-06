@@ -88,3 +88,36 @@ export interface GoodsReceipt {
     received_by: { id: number; name: string };
     items?: GoodsReceiptItem[];
 }
+
+export interface Customer {
+    id: number;
+    code: string;
+    name: string;
+}
+
+export interface GoodsIssueItem {
+    id: number;
+    product_id: number;
+    product_sku_snapshot: string;
+    product_name_snapshot: string;
+    qty: number;
+    unit_price: string;
+    subtotal: string;
+    product?: Product;
+}
+
+export type GoodsIssueStatusValue = "Draft" | "Issued" | "Cancelled";
+
+export interface GoodsIssue {
+    id: number;
+    issue_number: string;
+    so_number: string | null;
+    date: string;
+    status: GoodsIssueStatusValue;
+    total_amount: string;
+    notes: string | null;
+    customer: Customer;
+    warehouse: Warehouse;
+    issued_by: { id: number; name: string };
+    items?: GoodsIssueItem[];
+}

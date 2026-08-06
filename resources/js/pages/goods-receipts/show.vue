@@ -25,15 +25,15 @@ import {
     AlertDialogCancel,
     AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import type { GoodsReceipt, GoodsReceiptStatusValue } from "@/types/models";
+import type { GoodsIssue, GoodsIssueStatusValue } from "@/types/models";
 
 const props = defineProps<{
-    goodsReceipt: GoodsReceipt;
+    goodsIssue: GoodsIssue;
 }>();
 
 const breadcrumbs = [
-    { label: "Goods Receipts", href: "/goods-receipts" },
-    { label: props.goodsReceipt.receipt_number },
+    { label: "Goods Issues", href: "/goods-issues" },
+    { label: props.goodsIssue.issue_number },
 ];
 
 const page = usePage();
@@ -41,19 +41,19 @@ watch(
     () => page.props.flash,
     (flash) => {
         if (flash?.success) toast.success(flash.success);
+        // Insufficient-stock rejections from approve() land here as a flash
+        // error now (see GoodsIssueController::approve()'s try/catch).
         if (flash?.error) toast.error(flash.error);
     },
     { immediate: true },
 );
 
-function statusVariant(status: GoodsReceiptStatusValue) {
+function statusVariant(status: GoodsIssueStatusValue) {
     if (status === "Cancelled") return "destructive";
-    if (status === "Received") return "default";
+    if (status === "Issued") return "default";
     return "secondary";
 }
 
-// --- approve confirmation ---
-// Approval mutates real stock — worth a confirm step, unlike a plain edit.
 const approveDialogOpen = ref(false);
 const cancelDialogOpen = ref(false);
 const processing = ref(false);
@@ -61,7 +61,7 @@ const processing = ref(false);
 function approve() {
     processing.value = true;
     router.post(
-        `/goods-receipts/${props.goodsReceipt.id}/approve`,
+        `/goods-issues/${props.goodsIssue.id}/approve`,
         {},
         {
             onFinish: () => {
@@ -75,7 +75,7 @@ function approve() {
 function cancel() {
     processing.value = true;
     router.post(
-        `/goods-receipts/${props.goodsReceipt.id}/cancel`,
+        `/goods-issues/${props.goodsIssue.id}/cancel`,
         {},
         {
             onFinish: () => {
@@ -93,21 +93,21 @@ function cancel() {
             <div class="flex items-center justify-between">
                 <div>
                     <h1 class="text-xl font-semibold">
-                        {{ goodsReceipt.receipt_number }}
+                        {{ goodsIssue.issue_number }}
                     </h1>
                     <p class="text-sm text-muted-foreground">
-                        {{ goodsReceipt.supplier.name }} →
-                        {{ goodsReceipt.warehouse.name }}
+                        {{ goodsIssue.warehouse.name }} →
+                        {{ goodsIssue.customer.name }}
                     </p>
                 </div>
                 <div class="flex items-center gap-2">
                     <Badge
-                        :variant="statusVariant(goodsReceipt.status)"
+                        :variant="statusVariant(goodsIssue.status)"
                         class="text-sm"
                     >
-                        {{ goodsReceipt.status }}
+                        {{ goodsIssue.status }}
                     </Badge>
-                    <template v-if="goodsReceipt.status === 'Draft'">
+                    <template v-if="goodsIssue.status === 'Draft'">
                         <Button
                             variant="outline"
                             @click="cancelDialogOpen = true"
@@ -129,24 +129,24 @@ function cancel() {
                     class="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4"
                 >
                     <div>
-                        <p class="text-muted-foreground">PO Number</p>
-                        <p>{{ goodsReceipt.po_number ?? "—" }}</p>
+                        <p class="text-muted-foreground">SO Number</p>
+                        <p>{{ goodsIssue.so_number ?? "—" }}</p>
                     </div>
                     <div>
                         <p class="text-muted-foreground">Date</p>
-                        <p>{{ goodsReceipt.date }}</p>
+                        <p>{{ goodsIssue.date }}</p>
                     </div>
                     <div>
-                        <p class="text-muted-foreground">Received By</p>
-                        <p>{{ goodsReceipt.received_by.name }}</p>
+                        <p class="text-muted-foreground">Issued By</p>
+                        <p>{{ goodsIssue.issued_by.name }}</p>
                     </div>
                     <div>
                         <p class="text-muted-foreground">Total</p>
-                        <p>{{ goodsReceipt.total_amount }}</p>
+                        <p>{{ goodsIssue.total_amount }}</p>
                     </div>
-                    <div v-if="goodsReceipt.notes" class="col-span-full">
+                    <div v-if="goodsIssue.notes" class="col-span-full">
                         <p class="text-muted-foreground">Notes</p>
-                        <p>{{ goodsReceipt.notes }}</p>
+                        <p>{{ goodsIssue.notes }}</p>
                     </div>
                 </CardContent>
             </Card>
@@ -168,12 +168,9 @@ function cancel() {
                         </TableHeader>
                         <TableBody>
                             <TableRow
-                                v-for="item in goodsReceipt.items"
+                                v-for="item in goodsIssue.items"
                                 :key="item.id"
                             >
-                                <!-- Snapshot fields, not the live product — this is what
-                                     the receipt looked like at creation time, even if the
-                                     product's name/SKU has since changed. -->
                                 <TableCell class="font-mono text-sm">
                                     {{ item.product_sku_snapshot }}
                                 </TableCell>
@@ -194,7 +191,7 @@ function cancel() {
                                     Total
                                 </TableCell>
                                 <TableCell class="font-medium">
-                                    {{ goodsReceipt.total_amount }}
+                                    {{ goodsIssue.total_amount }}
                                 </TableCell>
                             </TableRow>
                         </TableFooter>
@@ -202,20 +199,21 @@ function cancel() {
                 </CardContent>
             </Card>
 
-            <Link href="/goods-receipts">
+            <Link href="/goods-issues">
                 <Button variant="outline">Back to list</Button>
             </Link>
         </div>
 
-        <!-- Approve confirmation — this is the step that actually mutates stock -->
         <AlertDialog v-model:open="approveDialogOpen">
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Approve this receipt?</AlertDialogTitle>
+                    <AlertDialogTitle>Approve this issue?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Stock will be added to
-                        {{ goodsReceipt.warehouse.name }} for every line item.
-                        This can't be undone.
+                        Stock will be deducted from
+                        {{ goodsIssue.warehouse.name }} for every line item. If
+                        any line exceeds available stock, the whole approval
+                        will be rejected — nothing partial. This can't be
+                        undone.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -230,16 +228,16 @@ function cancel() {
         <AlertDialog v-model:open="cancelDialogOpen">
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Cancel this receipt?</AlertDialogTitle>
+                    <AlertDialogTitle>Cancel this issue?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        No stock has been added yet, so nothing to reverse —
-                        this just marks the receipt as Cancelled.
+                        No stock has been deducted yet, so nothing to reverse —
+                        this just marks the issue as Cancelled.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel>Keep it</AlertDialogCancel>
                     <AlertDialogAction :disabled="processing" @click="cancel">
-                        Cancel Receipt
+                        Cancel Issue
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
