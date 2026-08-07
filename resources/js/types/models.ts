@@ -173,3 +173,41 @@ export interface WarehouseTransfer {
     received_by: { id: number; name: string } | null;
     items?: WarehouseTransferItem[];
 }
+
+export type StockOpnameStatusValue =
+    "Draft" | "In Progress" | "Completed" | "Approved" | "Rejected";
+export type StockOpnameItemStatusValue =
+    "Matched" | "Surplus" | "Shortage" | "Uncounted";
+
+export interface StockOpnameItem {
+    id: number;
+    product_id: number;
+    product_sku_snapshot: string;
+    product_name_snapshot: string;
+    system_qty: number;
+    physical_qty: number | null;
+    scanned_at: string | null;
+    notes: string | null;
+    status: StockOpnameItemStatusValue;
+    scanned_by: { id: number; name: string } | null;
+    product?: Product;
+}
+
+export interface StockOpname {
+    id: number;
+    opname_number: string;
+    title: string;
+    start_date: string;
+    completed_date: string | null;
+    status: StockOpnameStatusValue;
+    total_system_qty: number;
+    total_physical_qty: number;
+    total_variance_qty: number;
+    total_variance_value: string;
+    notes: string | null;
+    approved_at: string | null;
+    warehouse: Warehouse;
+    assigned_to: { id: number; name: string };
+    approved_by: { id: number; name: string } | null;
+    items?: StockOpnameItem[];
+}

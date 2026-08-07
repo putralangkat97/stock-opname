@@ -6,6 +6,8 @@ use App\Enums\StockOpnameStatus;
 use App\Http\Requests\StoreStockOpnameRequest;
 use App\Models\Product;
 use App\Models\StockOpname;
+use App\Models\User;
+use App\Models\Warehouse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -23,15 +25,35 @@ class StockOpnameController extends Controller
         $user = Auth::user();
         $query = StockOpname::query()->with(['warehouse', 'assignedTo', 'approvedBy']);
 
+        $warehouses = $user->hasRole('Super Admin')
+            ? Warehouse::query()->orderBy('name')->get(['id', 'code', 'name'])
+            : $user->warehouses()->orderBy('name')->get(['warehouses.id', 'warehouses.code', 'warehouses.name']);
+
         if (! $user->hasRole('Super Admin')) {
-            $warehouseIds = $user->warehouses()->pluck('warehouses.id');
+            $warehouseIds = $warehouses->pluck('id');
             $query->where(fn ($q) => $q
                 ->whereIn('warehouse_id', $warehouseIds)
                 ->orWhere('assigned_to', $user->id));
         }
 
-        return Inertia::render('StockOpnames/Index', [
+        return Inertia::render('stock-opnames/index', [
             'stockOpnames' => $query->latest('start_date')->paginate(15),
+            'warehouses' => $warehouses,
+            'products' => Product::query()
+                ->whereIn('warehouse_id', $warehouses->pluck('id'))
+                ->get(['id', 'sku', 'name', 'warehouse_id']),
+            // Assignable users: anyone with warehouse access (Warehouse Admin
+            // or Supervisor), plus their warehouse IDs so the Create dialog
+            // can filter the assignee list to the chosen warehouse client-side.
+            'assignableUsers' => User::query()
+                ->with('warehouses:id')
+                ->whereHas('warehouses')
+                ->get(['id', 'name'])
+                ->map(fn (User $u) => [
+                    'id' => $u->id,
+                    'name' => $u->name,
+                    'warehouse_ids' => $u->warehouses->pluck('id'),
+                ]),
         ]);
     }
 
@@ -39,7 +61,7 @@ class StockOpnameController extends Controller
     {
         $this->authorize('view', $stockOpname);
 
-        return Inertia::render('StockOpnames/Show', [
+        return Inertia::render('stock-opnames/show', [
             'stockOpname' => $stockOpname->load([
                 'warehouse', 'assignedTo', 'approvedBy', 'items.product', 'items.scannedBy',
             ]),
@@ -95,9 +117,11 @@ class StockOpnameController extends Controller
     {
         $this->authorize('complete', $stockOpname);
 
-        // Model throws RuntimeException if any line is still uncounted —
-        // let it bubble up as a flash error rather than swallowing it.
-        $stockOpname->complete();
+        try {
+            $stockOpname->complete();
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
 
         return back()->with('success', 'Stock opname completed — ready for approval.');
     }
