@@ -148,3 +148,28 @@ export interface StockAdjustment {
     adjusted_by: { id: number; name: string };
     items?: StockAdjustmentItem[];
 }
+
+export type WarehouseTransferStatusValue =
+    "Pending" | "In Transit" | "Completed" | "Rejected";
+
+export interface WarehouseTransferItem {
+    id: number;
+    product_id: number;
+    product_sku_snapshot: string;
+    product_name_snapshot: string;
+    qty: number;
+    product?: Product;
+}
+
+export interface WarehouseTransfer {
+    id: number;
+    transfer_number: string;
+    date: string;
+    status: WarehouseTransferStatusValue;
+    notes: string | null;
+    from_warehouse: Warehouse;
+    to_warehouse: Warehouse;
+    transferred_by: { id: number; name: string };
+    received_by: { id: number; name: string } | null;
+    items?: WarehouseTransferItem[];
+}

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\WarehouseTransferStatus;
 use App\Http\Requests\StoreWarehouseTransferRequest;
 use App\Models\Product;
+use App\Models\Warehouse;
 use App\Models\WarehouseTransfer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,15 +24,26 @@ class WarehouseTransferController extends Controller
         $user = Auth::user();
         $query = WarehouseTransfer::query()->with(['fromWarehouse', 'toWarehouse', 'transferredBy', 'receivedBy']);
 
+        $warehouses = $user->hasRole('Super Admin')
+            ? Warehouse::query()->orderBy('name')->get(['id', 'code', 'name'])
+            : $user->warehouses()->orderBy('name')->get(['warehouses.id', 'warehouses.code', 'warehouses.name']);
+
         if (! $user->hasRole('Super Admin')) {
-            $warehouseIds = $user->warehouses()->pluck('warehouses.id');
+            $warehouseIds = $warehouses->pluck('id');
             $query->where(fn ($q) => $q
                 ->whereIn('from_warehouse_id', $warehouseIds)
                 ->orWhereIn('to_warehouse_id', $warehouseIds));
         }
 
-        return Inertia::render('WarehouseTransfers/Index', [
+        return Inertia::render('warehouse-transfers/index', [
             'warehouseTransfers' => $query->latest('date')->paginate(15),
+            // All warehouses, not just $warehouses — a transfer's "to" side
+            // can be a warehouse the creator doesn't have access to yet
+            // (they're initiating a transfer TO it, not managing it).
+            'warehouses' => Warehouse::query()->orderBy('name')->get(['id', 'code', 'name']),
+            'products' => Product::query()
+                ->whereIn('warehouse_id', $warehouses->pluck('id'))
+                ->get(['id', 'sku', 'name', 'warehouse_id', 'stock']),
         ]);
     }
 
@@ -39,7 +51,7 @@ class WarehouseTransferController extends Controller
     {
         $this->authorize('view', $warehouseTransfer);
 
-        return Inertia::render('WarehouseTransfers/Show', [
+        return Inertia::render('warehouse-transfers/show', [
             'warehouseTransfer' => $warehouseTransfer->load([
                 'fromWarehouse', 'toWarehouse', 'transferredBy', 'receivedBy', 'items.product',
             ]),
@@ -84,7 +96,11 @@ class WarehouseTransferController extends Controller
     {
         $this->authorize('markInTransit', $warehouseTransfer);
 
-        $warehouseTransfer->markInTransit();
+        try {
+            $warehouseTransfer->markInTransit();
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
 
         return back()->with('success', 'Transfer marked In Transit — stock deducted from source.');
     }
