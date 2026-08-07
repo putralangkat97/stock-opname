@@ -303,7 +303,11 @@ function submit() {
                         <p class="text-sm text-muted-foreground">
                             {{ form.product_ids.length }} product(s) selected
                         </p>
-                        <FieldError :errors="[form.errors.items]" />
+                        <FieldError
+                            :errors="[
+                                (form.errors as Record<string, string>).items,
+                            ]"
+                        />
                     </div>
 
                     <Field>
