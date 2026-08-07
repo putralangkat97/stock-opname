@@ -15,7 +15,7 @@ import Breadcrumb from "./partials/breadcrumb.vue";
 import type { BreadcrumbEntry } from "@/types/ui";
 
 defineProps<{
-    breadcrumbs?: BreadcrumbEntry[];
+    breadcrumbs?: BreadcrumbEntry[] | undefined;
 }>();
 </script>
 

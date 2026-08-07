@@ -16,7 +16,7 @@ interface BreadcrumbEntryProps {
 }
 
 const props = defineProps<{
-    breadcrumbs: BreadcrumbEntryProps[];
+    breadcrumbs: BreadcrumbEntryProps[] | undefined;
 }>();
 </script>
 
@@ -28,7 +28,10 @@ const props = defineProps<{
                     :class="item.hideOnMobile ? 'hidden md:block' : undefined"
                 >
                     <BreadcrumbLink
-                        v-if="item.href && index !== breadcrumbs.length - 1"
+                        v-if="
+                            item.href &&
+                            index !== (breadcrumbs || [])?.length - 1
+                        "
                         :href="item.href"
                     >
                         {{ item.label }}
@@ -37,7 +40,7 @@ const props = defineProps<{
                 </BreadcrumbItem>
 
                 <BreadcrumbSeparator
-                    v-if="index !== breadcrumbs.length - 1"
+                    v-if="index !== (breadcrumbs || [])?.length - 1"
                     :class="item.hideOnMobile ? 'hidden md:block' : undefined"
                 />
             </template>

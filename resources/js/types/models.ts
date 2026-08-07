@@ -121,3 +121,30 @@ export interface GoodsIssue {
     issued_by: { id: number; name: string };
     items?: GoodsIssueItem[];
 }
+
+export type StockAdjustmentTypeValue = "IN" | "OUT";
+export type StockAdjustmentReasonValue =
+    "Damaged" | "Expired" | "Lost" | "Found" | "Correction";
+export type StockAdjustmentStatusValue = "Pending" | "Approved" | "Rejected";
+
+export interface StockAdjustmentItem {
+    id: number;
+    product_id: number;
+    product_sku_snapshot: string;
+    product_name_snapshot: string;
+    qty: number;
+    product?: Product;
+}
+
+export interface StockAdjustment {
+    id: number;
+    adjustment_number: string;
+    type: StockAdjustmentTypeValue;
+    reason: StockAdjustmentReasonValue;
+    date: string;
+    status: StockAdjustmentStatusValue;
+    notes: string | null;
+    warehouse: Warehouse;
+    adjusted_by: { id: number; name: string };
+    items?: StockAdjustmentItem[];
+}

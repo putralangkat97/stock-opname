@@ -6,6 +6,7 @@ use App\Enums\StockAdjustmentStatus;
 use App\Http\Requests\StoreStockAdjustmentRequest;
 use App\Models\Product;
 use App\Models\StockAdjustment;
+use App\Models\Warehouse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -23,12 +24,20 @@ class StockAdjustmentController extends Controller
         $user = Auth::user();
         $query = StockAdjustment::query()->with(['warehouse', 'adjustedBy']);
 
+        $warehouses = $user->hasRole('Super Admin')
+            ? Warehouse::query()->orderBy('name')->get(['id', 'code', 'name'])
+            : $user->warehouses()->orderBy('name')->get(['warehouses.id', 'warehouses.code', 'warehouses.name']);
+
         if (! $user->hasRole('Super Admin')) {
-            $query->whereIn('warehouse_id', $user->warehouses()->pluck('warehouses.id'));
+            $query->whereIn('warehouse_id', $warehouses->pluck('id'));
         }
 
-        return Inertia::render('StockAdjustments/Index', [
+        return Inertia::render('stock-adjustments/index', [
             'stockAdjustments' => $query->latest('date')->paginate(15),
+            'warehouses' => $warehouses,
+            'products' => Product::query()
+                ->whereIn('warehouse_id', $warehouses->pluck('id'))
+                ->get(['id', 'sku', 'name', 'warehouse_id', 'stock']),
         ]);
     }
 
@@ -36,7 +45,7 @@ class StockAdjustmentController extends Controller
     {
         $this->authorize('view', $stockAdjustment);
 
-        return Inertia::render('StockAdjustments/Show', [
+        return Inertia::render('stock-adjustments/show', [
             'stockAdjustment' => $stockAdjustment->load(['warehouse', 'adjustedBy', 'items.product']),
         ]);
     }
@@ -80,7 +89,11 @@ class StockAdjustmentController extends Controller
     {
         $this->authorize('approve', $stockAdjustment);
 
-        $stockAdjustment->approve();
+        try {
+            $stockAdjustment->approve();
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
 
         return back()->with('success', 'Stock adjustment approved — stock updated.');
     }
