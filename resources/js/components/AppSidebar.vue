@@ -81,7 +81,7 @@ const data = {
             <SidebarMenu>
                 <SidebarMenuItem>
                     <SidebarMenuButton size="lg" as-child>
-                        <a href="#">
+                        <Link href="/dashboard">
                             <div
                                 class="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground"
                             >
@@ -91,11 +91,11 @@ const data = {
                                 class="grid flex-1 text-left text-sm leading-tight"
                             >
                                 <span class="truncate font-medium">
-                                    Acme Inc
+                                    {{ appName }}
                                 </span>
                                 <span class="truncate text-xs">Enterprise</span>
                             </div>
-                        </a>
+                        </Link>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
             </SidebarMenu>
