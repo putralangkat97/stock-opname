@@ -2,12 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\StoreGoodsReceiptRequest;
-use App\Http\Requests\UpdateGoodsReceiptRequest;
-use App\Enums\GoodsReceiptStatus;
-use App\Models\GoodsReceipt;
 use App\Models\Product;
-use App\Models\Supplier;
 use App\Models\Warehouse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;

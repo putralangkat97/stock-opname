@@ -12,7 +12,7 @@ class Rack extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = ["warehouse_id", "code", "zone"];
+    protected $fillable = ['warehouse_id', 'code', 'zone'];
 
     public function warehouse(): BelongsTo
     {
@@ -29,10 +29,10 @@ class Rack extends Model
         // Keep every child bin's denormalized warehouse_id in sync if a rack
         // is ever reassigned to a different warehouse.
         static::updated(function (Rack $rack) {
-            if ($rack->wasChanged("warehouse_id")) {
+            if ($rack->wasChanged('warehouse_id')) {
                 $rack
                     ->binLocations()
-                    ->update(["warehouse_id" => $rack->warehouse_id]);
+                    ->update(['warehouse_id' => $rack->warehouse_id]);
             }
         });
     }

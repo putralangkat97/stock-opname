@@ -11,11 +11,11 @@ class StockAdjustmentItem extends Model
     use HasFactory;
 
     protected $fillable = [
-        "stock_adjustment_id",
-        "product_id",
-        "product_sku_snapshot",
-        "product_name_snapshot",
-        "qty",
+        'stock_adjustment_id',
+        'product_id',
+        'product_sku_snapshot',
+        'product_name_snapshot',
+        'qty',
     ];
 
     public function stockAdjustment(): BelongsTo
@@ -33,7 +33,7 @@ class StockAdjustmentItem extends Model
         static::saving(function (StockAdjustmentItem $item) {
             if (
                 $item->product_id &&
-                ($item->isDirty("product_id") || !$item->exists)
+                ($item->isDirty('product_id') || ! $item->exists)
             ) {
                 $product = $item->product ?? Product::find($item->product_id);
                 $item->product_sku_snapshot = $product?->sku;

@@ -18,9 +18,9 @@ use App\Http\Controllers\WarehouseTransferController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::middleware(["auth"])->group(function () {
-    Route::get("/dashboard", function () {
-        return Inertia::render("dashboard/index");
+Route::middleware(['auth'])->group(function () {
+    Route::get('/dashboard', function () {
+        return Inertia::render('dashboard/index');
     });
 
     // Master Data

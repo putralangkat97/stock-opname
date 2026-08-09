@@ -13,12 +13,12 @@ class Warehouse extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        "code",
-        "name",
-        "location",
-        "manager",
-        "phone",
-        "total_capacity",
+        'code',
+        'name',
+        'location',
+        'manager',
+        'phone',
+        'total_capacity',
     ];
 
     public function racks(): HasMany
@@ -43,7 +43,7 @@ class Warehouse extends Model
     // to appear in this pivot for every warehouse.
     public function users(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, "warehouse_user");
+        return $this->belongsToMany(User::class, 'warehouse_user');
     }
 
     public function goodsReceipts(): HasMany
@@ -68,11 +68,11 @@ class Warehouse extends Model
 
     public function transfersOut(): HasMany
     {
-        return $this->hasMany(WarehouseTransfer::class, "from_warehouse_id");
+        return $this->hasMany(WarehouseTransfer::class, 'from_warehouse_id');
     }
 
     public function transfersIn(): HasMany
     {
-        return $this->hasMany(WarehouseTransfer::class, "to_warehouse_id");
+        return $this->hasMany(WarehouseTransfer::class, 'to_warehouse_id');
     }
 }

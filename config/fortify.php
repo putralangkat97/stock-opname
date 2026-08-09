@@ -14,7 +14,7 @@ return [
     |
     */
 
-    "guard" => "web",
+    'guard' => 'web',
 
     /*
     |--------------------------------------------------------------------------
@@ -27,7 +27,7 @@ return [
     |
     */
 
-    "passwords" => "users",
+    'passwords' => 'users',
 
     /*
     |--------------------------------------------------------------------------
@@ -44,9 +44,9 @@ return [
     |
     */
 
-    "username" => "email",
+    'username' => 'email',
 
-    "email" => "email",
+    'email' => 'email',
 
     /*
     |--------------------------------------------------------------------------
@@ -59,7 +59,7 @@ return [
     |
     */
 
-    "lowercase_usernames" => true,
+    'lowercase_usernames' => true,
 
     /*
     |--------------------------------------------------------------------------
@@ -72,7 +72,7 @@ return [
     |
     */
 
-    "home" => "/dashboard",
+    'home' => '/dashboard',
 
     /*
     |--------------------------------------------------------------------------
@@ -85,9 +85,9 @@ return [
     |
     */
 
-    "prefix" => "",
+    'prefix' => '',
 
-    "domain" => null,
+    'domain' => null,
 
     /*
     |--------------------------------------------------------------------------
@@ -100,7 +100,7 @@ return [
     |
     */
 
-    "middleware" => ["web"],
+    'middleware' => ['web'],
 
     /*
     |--------------------------------------------------------------------------
@@ -113,10 +113,10 @@ return [
     |
     */
 
-    "limiters" => [
-        "login" => "login",
-        "two-factor" => "two-factor",
-        "passkeys" => "passkeys",
+    'limiters' => [
+        'login' => 'login',
+        'two-factor' => 'two-factor',
+        'passkeys' => 'passkeys',
     ],
 
     /*
@@ -130,7 +130,7 @@ return [
     |
     */
 
-    "views" => true,
+    'views' => true,
 
     /*
     |--------------------------------------------------------------------------
@@ -143,10 +143,10 @@ return [
     |
     */
 
-    "passkeys" => [
-        "relying_party_id" => parse_url(config("app.url"), PHP_URL_HOST),
-        "allowed_origins" => [config("app.url")],
-        "timeout" => 60000,
+    'passkeys' => [
+        'relying_party_id' => parse_url(config('app.url'), PHP_URL_HOST),
+        'allowed_origins' => [config('app.url')],
+        'timeout' => 60000,
     ],
 
     /*
@@ -160,19 +160,19 @@ return [
     |
     */
 
-    "features" => [
+    'features' => [
         Features::registration(),
         Features::resetPasswords(),
         // Features::emailVerification(),
         Features::updateProfileInformation(),
         Features::updatePasswords(),
         Features::twoFactorAuthentication([
-            "confirm" => true,
-            "confirmPassword" => true,
+            'confirm' => true,
+            'confirmPassword' => true,
             // 'window' => 0,
         ]),
         Features::passkeys([
-            "confirmPassword" => true,
+            'confirmPassword' => true,
         ]),
     ],
 ];

@@ -13,24 +13,24 @@ use RuntimeException;
 
 class GoodsReceipt extends Model
 {
-    use HasFactory, Auditable;
+    use Auditable, HasFactory;
 
     protected $fillable = [
-        "supplier_id",
-        "warehouse_id",
-        "received_by",
-        "receipt_number",
-        "po_number",
-        "date",
-        "status",
-        "total_amount",
-        "notes",
+        'supplier_id',
+        'warehouse_id',
+        'received_by',
+        'receipt_number',
+        'po_number',
+        'date',
+        'status',
+        'total_amount',
+        'notes',
     ];
 
     protected $casts = [
-        "date" => "date",
-        "total_amount" => "decimal:2",
-        "status" => GoodsReceiptStatus::class,
+        'date' => 'date',
+        'total_amount' => 'decimal:2',
+        'status' => GoodsReceiptStatus::class,
     ];
 
     public function supplier(): BelongsTo
@@ -45,7 +45,7 @@ class GoodsReceipt extends Model
 
     public function receivedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, "received_by");
+        return $this->belongsTo(User::class, 'received_by');
     }
 
     public function items(): HasMany
@@ -61,16 +61,16 @@ class GoodsReceipt extends Model
     public function approve(): void
     {
         if ($this->status !== GoodsReceiptStatus::STATUS_DRAFT) {
-            throw new RuntimeException("Only a Draft receipt can be approved.");
+            throw new RuntimeException('Only a Draft receipt can be approved.');
         }
 
         DB::transaction(function () {
             foreach ($this->items as $item) {
-                $item->product()->increment("stock", $item->qty);
+                $item->product()->increment('stock', $item->qty);
             }
 
-            $this->update(["status" => GoodsReceiptStatus::STATUS_RECEIVED]);
-            $this->logAudit("approved");
+            $this->update(['status' => GoodsReceiptStatus::STATUS_RECEIVED]);
+            $this->logAudit('approved');
 
             // AuditLog + notification dispatch (low_stock check, approval notice)
             // hook in here once the Supporting batch (AuditLog + Observer) is generated.
@@ -81,11 +81,11 @@ class GoodsReceipt extends Model
     {
         if ($this->status !== GoodsReceiptStatus::STATUS_DRAFT) {
             throw new RuntimeException(
-                "Only a Draft receipt can be cancelled.",
+                'Only a Draft receipt can be cancelled.',
             );
         }
 
-        $this->update(["status" => GoodsReceiptStatus::STATUS_CANCELLED]);
-        $this->logAudit("cancelled");
+        $this->update(['status' => GoodsReceiptStatus::STATUS_CANCELLED]);
+        $this->logAudit('cancelled');
     }
 }

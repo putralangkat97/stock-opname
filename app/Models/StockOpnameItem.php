@@ -13,21 +13,21 @@ class StockOpnameItem extends Model
     use HasFactory;
 
     protected $fillable = [
-        "stock_opname_id",
-        "product_id",
-        "scanned_by",
-        "product_sku_snapshot",
-        "product_name_snapshot",
-        "system_qty",
-        "physical_qty",
-        "scanned_at",
-        "notes",
-        "status",
+        'stock_opname_id',
+        'product_id',
+        'scanned_by',
+        'product_sku_snapshot',
+        'product_name_snapshot',
+        'system_qty',
+        'physical_qty',
+        'scanned_at',
+        'notes',
+        'status',
     ];
 
     protected $casts = [
-        "scanned_at" => "datetime",
-        "status" => StockOpnameItemStatus::class,
+        'scanned_at' => 'datetime',
+        'status' => StockOpnameItemStatus::class,
     ];
 
     public function stockOpname(): BelongsTo
@@ -42,7 +42,7 @@ class StockOpnameItem extends Model
 
     public function scannedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, "scanned_by");
+        return $this->belongsTo(User::class, 'scanned_by');
     }
 
     /**
@@ -52,18 +52,16 @@ class StockOpnameItem extends Model
     public function recordCount(int $physicalQty, User $scannedBy): void
     {
         $status = match (true) {
-            $physicalQty === $this->system_qty
-                => StockOpnameItemStatus::STATUS_MATCHED,
-            $physicalQty > $this->system_qty
-                => StockOpnameItemStatus::STATUS_SURPLUS,
+            $physicalQty === $this->system_qty => StockOpnameItemStatus::STATUS_MATCHED,
+            $physicalQty > $this->system_qty => StockOpnameItemStatus::STATUS_SURPLUS,
             default => StockOpnameItemStatus::STATUS_SHORTAGE,
         };
 
         $this->update([
-            "physical_qty" => $physicalQty,
-            "scanned_by" => $scannedBy->id,
-            "scanned_at" => now(),
-            "status" => $status,
+            'physical_qty' => $physicalQty,
+            'scanned_by' => $scannedBy->id,
+            'scanned_at' => now(),
+            'status' => $status,
         ]);
     }
 
@@ -71,7 +69,7 @@ class StockOpnameItem extends Model
     protected function variance(): Attribute
     {
         return Attribute::make(
-            get: fn() => $this->physical_qty === null
+            get: fn () => $this->physical_qty === null
                 ? null
                 : $this->physical_qty - $this->system_qty,
         );
@@ -80,7 +78,7 @@ class StockOpnameItem extends Model
     protected function varianceValue(): Attribute
     {
         return Attribute::make(
-            get: fn() => $this->variance === null
+            get: fn () => $this->variance === null
                 ? null
                 : $this->variance * $this->product->cost_price,
         );
@@ -89,14 +87,14 @@ class StockOpnameItem extends Model
     protected static function booted(): void
     {
         static::saving(function (StockOpnameItem $item) {
-            if ($item->product_id && !$item->exists) {
+            if ($item->product_id && ! $item->exists) {
                 $product = $item->product ?? Product::find($item->product_id);
                 $item->product_sku_snapshot = $product?->sku;
                 $item->product_name_snapshot = $product?->name;
 
                 // Snapshot system_qty from the product's current stock at the
                 // moment this line is added to the opname, if not already set.
-                if (!isset($item->system_qty)) {
+                if (! isset($item->system_qty)) {
                     $item->system_qty = $product?->stock ?? 0;
                 }
             }

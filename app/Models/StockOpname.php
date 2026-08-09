@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
+use App\Concerns\Auditable;
 use App\Enums\StockAdjustmentStatus;
 use App\Enums\StockAdjustmentType;
 use App\Enums\StockOpnameStatus;
-use App\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,31 +16,31 @@ use RuntimeException;
 
 class StockOpname extends Model
 {
-    use HasFactory, Auditable;
+    use Auditable, HasFactory;
 
     protected $fillable = [
-        "warehouse_id",
-        "assigned_to",
-        "approved_by",
-        "opname_number",
-        "title",
-        "start_date",
-        "completed_date",
-        "status",
-        "total_system_qty",
-        "total_physical_qty",
-        "total_variance_qty",
-        "total_variance_value",
-        "notes",
-        "approved_at",
+        'warehouse_id',
+        'assigned_to',
+        'approved_by',
+        'opname_number',
+        'title',
+        'start_date',
+        'completed_date',
+        'status',
+        'total_system_qty',
+        'total_physical_qty',
+        'total_variance_qty',
+        'total_variance_value',
+        'notes',
+        'approved_at',
     ];
 
     protected $casts = [
-        "start_date" => "date",
-        "completed_date" => "date",
-        "approved_at" => "datetime",
-        "total_variance_value" => "decimal:2",
-        "status" => StockOpnameStatus::class,
+        'start_date' => 'date',
+        'completed_date' => 'date',
+        'approved_at' => 'datetime',
+        'total_variance_value' => 'decimal:2',
+        'status' => StockOpnameStatus::class,
     ];
 
     public function warehouse(): BelongsTo
@@ -50,12 +50,12 @@ class StockOpname extends Model
 
     public function assignedTo(): BelongsTo
     {
-        return $this->belongsTo(User::class, "assigned_to");
+        return $this->belongsTo(User::class, 'assigned_to');
     }
 
     public function approvedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, "approved_by");
+        return $this->belongsTo(User::class, 'approved_by');
     }
 
     public function items(): HasMany
@@ -69,11 +69,11 @@ class StockOpname extends Model
     public function start(): void
     {
         if ($this->status !== StockOpnameStatus::STATUS_DRAFT) {
-            throw new RuntimeException("Only a Draft opname can be started.");
+            throw new RuntimeException('Only a Draft opname can be started.');
         }
 
-        $this->update(["status" => StockOpnameStatus::STATUS_IN_PROGRESS]);
-        $this->logAudit("started");
+        $this->update(['status' => StockOpnameStatus::STATUS_IN_PROGRESS]);
+        $this->logAudit('started');
     }
 
     /**
@@ -84,37 +84,37 @@ class StockOpname extends Model
     {
         if ($this->status !== StockOpnameStatus::STATUS_IN_PROGRESS) {
             throw new RuntimeException(
-                "Only an In Progress opname can be completed.",
+                'Only an In Progress opname can be completed.',
             );
         }
 
-        if ($this->items()->whereNull("physical_qty")->exists()) {
+        if ($this->items()->whereNull('physical_qty')->exists()) {
             throw new RuntimeException(
-                "All lines must be counted before completing the opname.",
+                'All lines must be counted before completing the opname.',
             );
         }
 
         DB::transaction(function () {
-            $items = $this->items()->with("product")->get();
+            $items = $this->items()->with('product')->get();
 
-            $totalSystem = $items->sum("system_qty");
-            $totalPhysical = $items->sum("physical_qty");
+            $totalSystem = $items->sum('system_qty');
+            $totalPhysical = $items->sum('physical_qty');
             $totalVarianceQty = $totalPhysical - $totalSystem;
             $totalVarianceValue = $items->sum(
-                fn(StockOpnameItem $item) => ($item->physical_qty -
+                fn (StockOpnameItem $item) => ($item->physical_qty -
                     $item->system_qty) *
                     $item->product->cost_price,
             );
 
             $this->update([
-                "status" => StockOpnameStatus::STATUS_COMPLETED,
-                "completed_date" => now()->toDateString(),
-                "total_system_qty" => $totalSystem,
-                "total_physical_qty" => $totalPhysical,
-                "total_variance_qty" => $totalVarianceQty,
-                "total_variance_value" => $totalVarianceValue,
+                'status' => StockOpnameStatus::STATUS_COMPLETED,
+                'completed_date' => now()->toDateString(),
+                'total_system_qty' => $totalSystem,
+                'total_physical_qty' => $totalPhysical,
+                'total_variance_qty' => $totalVarianceQty,
+                'total_variance_value' => $totalVarianceValue,
             ]);
-            $this->logAudit("completed", ["variance_qty" => $totalVarianceQty]);
+            $this->logAudit('completed', ['variance_qty' => $totalVarianceQty]);
         });
     }
 
@@ -129,13 +129,13 @@ class StockOpname extends Model
     {
         if ($this->status !== StockOpnameStatus::STATUS_COMPLETED) {
             throw new RuntimeException(
-                "Only a Completed opname can be approved.",
+                'Only a Completed opname can be approved.',
             );
         }
 
         DB::transaction(function () use ($approverId) {
             $varianceItems = $this->items()
-                ->whereColumn("physical_qty", "!=", "system_qty")
+                ->whereColumn('physical_qty', '!=', 'system_qty')
                 ->get();
 
             if ($varianceItems->isNotEmpty()) {
@@ -143,48 +143,44 @@ class StockOpname extends Model
                 // contain both surplus and shortage lines in the same count. Split into up
                 // to two adjustments (one IN, one OUT) rather than force a single direction.
                 $surplus = $varianceItems->filter(
-                    fn(StockOpnameItem $i) => $i->physical_qty > $i->system_qty,
+                    fn (StockOpnameItem $i) => $i->physical_qty > $i->system_qty,
                 );
                 $shortage = $varianceItems->filter(
-                    fn(StockOpnameItem $i) => $i->physical_qty < $i->system_qty,
+                    fn (StockOpnameItem $i) => $i->physical_qty < $i->system_qty,
                 );
 
                 foreach (
                     [
                         [StockAdjustmentType::TYPE_IN, $surplus],
                         [StockAdjustmentType::TYPE_OUT, $shortage],
-                    ]
-                    as [$type, $lines]
+                    ] as [$type, $lines]
                 ) {
                     if ($lines->isEmpty()) {
                         continue;
                     }
 
                     $adj = StockAdjustment::query()->create([
-                        "warehouse_id" => $this->warehouse_id,
-                        "adjusted_by" => $approverId,
-                        "adjustment_number" =>
-                            "ADJ-OPN-" .
-                            $this->opname_number .
-                            "-" .
-                            $type .
-                            "-" .
+                        'warehouse_id' => $this->warehouse_id,
+                        'adjusted_by' => $approverId,
+                        'adjustment_number' => 'ADJ-OPN-'.
+                            $this->opname_number.
+                            '-'.
+                            $type.
+                            '-'.
                             Str::upper(Str::random(4)),
-                        "type" => $type,
-                        "reason" => "Correction",
-                        "date" => now()->toDateString(),
-                        "status" => StockAdjustmentStatus::STATUS_PENDING,
-                        "notes" => "Auto-generated from Stock Opname {$this->opname_number}",
+                        'type' => $type,
+                        'reason' => 'Correction',
+                        'date' => now()->toDateString(),
+                        'status' => StockAdjustmentStatus::STATUS_PENDING,
+                        'notes' => "Auto-generated from Stock Opname {$this->opname_number}",
                     ]);
 
                     foreach ($lines as $line) {
                         $adj->items()->create([
-                            "product_id" => $line->product_id,
-                            "product_sku_snapshot" =>
-                                $line->product_sku_snapshot,
-                            "product_name_snapshot" =>
-                                $line->product_name_snapshot,
-                            "qty" => abs(
+                            'product_id' => $line->product_id,
+                            'product_sku_snapshot' => $line->product_sku_snapshot,
+                            'product_name_snapshot' => $line->product_name_snapshot,
+                            'qty' => abs(
                                 $line->physical_qty - $line->system_qty,
                             ),
                         ]);
@@ -196,11 +192,11 @@ class StockOpname extends Model
             }
 
             $this->update([
-                "status" => StockOpnameStatus::STATUS_APPROVED,
-                "approved_by" => $approverId,
-                "approved_at" => now(),
+                'status' => StockOpnameStatus::STATUS_APPROVED,
+                'approved_by' => $approverId,
+                'approved_at' => now(),
             ]);
-            $this->logAudit("approved");
+            $this->logAudit('approved');
         });
     }
 
@@ -212,11 +208,11 @@ class StockOpname extends Model
     {
         if ($this->status !== StockOpnameStatus::STATUS_COMPLETED) {
             throw new RuntimeException(
-                "Only a Completed opname can be rejected back for recount.",
+                'Only a Completed opname can be rejected back for recount.',
             );
         }
 
-        $this->update(["status" => StockOpnameStatus::STATUS_IN_PROGRESS]);
-        $this->logAudit("rejected_for_recount");
+        $this->update(['status' => StockOpnameStatus::STATUS_IN_PROGRESS]);
+        $this->logAudit('rejected_for_recount');
     }
 }

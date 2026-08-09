@@ -9,20 +9,20 @@ trait Auditable
 {
     protected static function bootAuditable(): void
     {
-        static::created(fn(self $model) => AuditLog::record("created", $model));
+        static::created(fn (self $model) => AuditLog::record('created', $model));
 
         static::updated(
-            fn(self $model) => AuditLog::record("updated", $model, [
-                "changed" => $model->getChanges(),
+            fn (self $model) => AuditLog::record('updated', $model, [
+                'changed' => $model->getChanges(),
             ]),
         );
 
-        static::deleted(fn(self $model) => AuditLog::record("deleted", $model));
+        static::deleted(fn (self $model) => AuditLog::record('deleted', $model));
     }
 
     public function auditLogs(): MorphMany
     {
-        return $this->morphMany(AuditLog::class, "auditable")->latest();
+        return $this->morphMany(AuditLog::class, 'auditable')->latest();
     }
 
     /**

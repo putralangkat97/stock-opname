@@ -19,11 +19,11 @@ class RackPolicy
     }
 
     /**
-        * $warehouse is passed as context from the controller
-        * (Gate::authorize('create', [Rack::class, $warehouse])) so a Warehouse
-        * Admin can only create racks in a warehouse they actually have access to
-        * — checking the role alone wasn't enough.
-        */
+     * $warehouse is passed as context from the controller
+     * (Gate::authorize('create', [Rack::class, $warehouse])) so a Warehouse
+     * Admin can only create racks in a warehouse they actually have access to
+     * — checking the role alone wasn't enough.
+     */
     public function create(User $user, ?Warehouse $warehouse = null): bool
     {
         if ($user->hasRole('Super Admin')) {

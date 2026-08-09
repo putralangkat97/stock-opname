@@ -5,10 +5,11 @@ namespace App\Http\Controllers;
 use App\Enums\GoodsIssueStatus;
 use App\Http\Requests\StoreGoodsIssueRequest;
 use App\Http\Requests\UpdateGoodsIssueRequest;
+use App\Models\Customer;
 use App\Models\GoodsIssue;
 use App\Models\Product;
+use App\Models\Warehouse;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -24,12 +25,24 @@ class GoodsIssueController extends Controller
         $user = Auth::user();
         $query = GoodsIssue::query()->with(['customer', 'warehouse', 'issuedBy']);
 
+        $warehouses = $user->hasRole('Super Admin')
+            ? Warehouse::query()->orderBy('name')->get(['id', 'code', 'name'])
+            : $user->warehouses()->orderBy('name')->get(['warehouses.id', 'warehouses.code', 'warehouses.name']);
+
         if (! $user->hasRole('Super Admin')) {
-            $query->whereIn('warehouse_id', $user->warehouses()->pluck('warehouses.id'));
+            $query->whereIn('warehouse_id', $warehouses->pluck('id'));
         }
 
-        return Inertia::render('GoodsIssues/Index', [
+        return Inertia::render('goods-issues/index', [
             'goodsIssues' => $query->latest('date')->paginate(15),
+            'customers' => Customer::query()->orderBy('name')->get(['id', 'code', 'name']),
+            'warehouses' => $warehouses,
+            // 'stock' included so the form can warn before submitting a qty
+            // the product doesn't have — the real guard is still server-side
+            // in GoodsIssue::approve(), this is just a UX nicety.
+            'products' => Product::query()
+                ->whereIn('warehouse_id', $warehouses->pluck('id'))
+                ->get(['id', 'sku', 'name', 'warehouse_id', 'stock', 'selling_price']),
         ]);
     }
 
@@ -37,7 +50,7 @@ class GoodsIssueController extends Controller
     {
         $this->authorize('view', $goodsIssue);
 
-        return Inertia::render('GoodsIssues/Show', [
+        return Inertia::render('goods-issues/show', [
             'goodsIssue' => $goodsIssue->load(['customer', 'warehouse', 'issuedBy', 'items.product']),
         ]);
     }
@@ -95,10 +108,14 @@ class GoodsIssueController extends Controller
     {
         $this->authorize('approve', $goodsIssue);
 
-        // Model throws RuntimeException on insufficient stock — let it bubble
-        // up to Laravel's default exception handler (renders as a 500/flash
-        // error via Inertia), rather than silently swallowing a real problem.
-        $goodsIssue->approve();
+        try {
+            $goodsIssue->approve();
+        } catch (\RuntimeException $e) {
+            // Insufficient stock, or wrong status — a real business-rule
+            // rejection, not a bug. Surface it as a flash error rather than
+            // a raw 500/Inertia error modal.
+            return back()->with('error', $e->getMessage());
+        }
 
         return back()->with('success', 'Goods issue approved — stock updated.');
     }

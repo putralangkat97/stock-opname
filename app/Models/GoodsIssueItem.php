@@ -11,18 +11,18 @@ class GoodsIssueItem extends Model
     use HasFactory;
 
     protected $fillable = [
-        "goods_issue_id",
-        "product_id",
-        "product_sku_snapshot",
-        "product_name_snapshot",
-        "qty",
-        "unit_price",
-        "subtotal",
+        'goods_issue_id',
+        'product_id',
+        'product_sku_snapshot',
+        'product_name_snapshot',
+        'qty',
+        'unit_price',
+        'subtotal',
     ];
 
     protected $casts = [
-        "unit_price" => "decimal:2",
-        "subtotal" => "decimal:2",
+        'unit_price' => 'decimal:2',
+        'subtotal' => 'decimal:2',
     ];
 
     public function goodsIssue(): BelongsTo
@@ -40,7 +40,7 @@ class GoodsIssueItem extends Model
         static::saving(function (GoodsIssueItem $item) {
             if (
                 $item->product_id &&
-                ($item->isDirty("product_id") || !$item->exists)
+                ($item->isDirty('product_id') || ! $item->exists)
             ) {
                 $product = $item->product ?? Product::find($item->product_id);
                 $item->product_sku_snapshot = $product?->sku;

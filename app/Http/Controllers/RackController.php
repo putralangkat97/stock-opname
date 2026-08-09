@@ -7,7 +7,6 @@ use App\Http\Requests\UpdateRackRequest;
 use App\Models\Rack;
 use App\Models\Warehouse;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 
 class RackController extends Controller
 {

@@ -11,7 +11,7 @@ class Category extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = ["code", "name", "description"];
+    protected $fillable = ['code', 'name', 'description'];
 
     public function products(): HasMany
     {

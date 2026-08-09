@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use App\Enums\WarehouseTransferStatus;
 use App\Concerns\Auditable;
+use App\Enums\WarehouseTransferStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,42 +13,42 @@ use RuntimeException;
 
 class WarehouseTransfer extends Model
 {
-    use HasFactory, Auditable;
+    use Auditable, HasFactory;
 
     protected $fillable = [
-        "from_warehouse_id",
-        "to_warehouse_id",
-        "transferred_by",
-        "received_by",
-        "transfer_number",
-        "date",
-        "status",
-        "notes",
+        'from_warehouse_id',
+        'to_warehouse_id',
+        'transferred_by',
+        'received_by',
+        'transfer_number',
+        'date',
+        'status',
+        'notes',
     ];
 
     protected $casts = [
-        "date" => "date",
-        "status" => WarehouseTransferStatus::class,
+        'date' => 'date',
+        'status' => WarehouseTransferStatus::class,
     ];
 
     public function fromWarehouse(): BelongsTo
     {
-        return $this->belongsTo(Warehouse::class, "from_warehouse_id");
+        return $this->belongsTo(Warehouse::class, 'from_warehouse_id');
     }
 
     public function toWarehouse(): BelongsTo
     {
-        return $this->belongsTo(Warehouse::class, "to_warehouse_id");
+        return $this->belongsTo(Warehouse::class, 'to_warehouse_id');
     }
 
     public function transferredBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, "transferred_by");
+        return $this->belongsTo(User::class, 'transferred_by');
     }
 
     public function receivedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, "received_by");
+        return $this->belongsTo(User::class, 'received_by');
     }
 
     public function items(): HasMany
@@ -64,7 +64,7 @@ class WarehouseTransfer extends Model
                 $transfer->from_warehouse_id === $transfer->to_warehouse_id
             ) {
                 throw new RuntimeException(
-                    "A transfer cannot have the same source and destination warehouse.",
+                    'A transfer cannot have the same source and destination warehouse.',
                 );
             }
         });
@@ -78,7 +78,7 @@ class WarehouseTransfer extends Model
     {
         if ($this->status !== WarehouseTransferStatus::STATUS_PENDING) {
             throw new RuntimeException(
-                "Only a Pending transfer can be marked In Transit.",
+                'Only a Pending transfer can be marked In Transit.',
             );
         }
 
@@ -92,13 +92,13 @@ class WarehouseTransfer extends Model
                     );
                 }
 
-                $product->decrement("stock", $item->qty);
+                $product->decrement('stock', $item->qty);
             }
 
             $this->update([
-                "status" => WarehouseTransferStatus::STATUS_IN_TRANSIT,
+                'status' => WarehouseTransferStatus::STATUS_IN_TRANSIT,
             ]);
-            $this->logAudit("marked_in_transit");
+            $this->logAudit('marked_in_transit');
         });
     }
 
@@ -111,7 +111,7 @@ class WarehouseTransfer extends Model
     {
         if ($this->status !== WarehouseTransferStatus::STATUS_IN_TRANSIT) {
             throw new RuntimeException(
-                "Only an In Transit transfer can be completed.",
+                'Only an In Transit transfer can be completed.',
             );
         }
 
@@ -121,32 +121,32 @@ class WarehouseTransfer extends Model
 
                 $destinationProduct = Product::query()->firstOrCreate(
                     [
-                        "sku" => $sourceProduct->sku,
-                        "warehouse_id" => $this->to_warehouse_id,
+                        'sku' => $sourceProduct->sku,
+                        'warehouse_id' => $this->to_warehouse_id,
                     ],
                     [
-                        "category_id" => $sourceProduct->category_id,
-                        "brand_id" => $sourceProduct->brand_id,
-                        "unit_id" => $sourceProduct->unit_id,
-                        "bin_location_id" => null, // must be assigned manually at destination
-                        "name" => $sourceProduct->name,
-                        "stock" => 0,
-                        "min_stock" => $sourceProduct->min_stock,
-                        "max_stock" => $sourceProduct->max_stock,
-                        "cost_price" => $sourceProduct->cost_price,
-                        "selling_price" => $sourceProduct->selling_price,
-                        "is_fast_moving" => $sourceProduct->is_fast_moving,
+                        'category_id' => $sourceProduct->category_id,
+                        'brand_id' => $sourceProduct->brand_id,
+                        'unit_id' => $sourceProduct->unit_id,
+                        'bin_location_id' => null, // must be assigned manually at destination
+                        'name' => $sourceProduct->name,
+                        'stock' => 0,
+                        'min_stock' => $sourceProduct->min_stock,
+                        'max_stock' => $sourceProduct->max_stock,
+                        'cost_price' => $sourceProduct->cost_price,
+                        'selling_price' => $sourceProduct->selling_price,
+                        'is_fast_moving' => $sourceProduct->is_fast_moving,
                     ],
                 );
 
-                $destinationProduct->increment("stock", $item->qty);
+                $destinationProduct->increment('stock', $item->qty);
             }
 
             $this->update([
-                "status" => WarehouseTransferStatus::STATUS_COMPLETED,
-                "received_by" => $receivedByUserId,
+                'status' => WarehouseTransferStatus::STATUS_COMPLETED,
+                'received_by' => $receivedByUserId,
             ]);
-            $this->logAudit("completed");
+            $this->logAudit('completed');
         });
     }
 
@@ -158,7 +158,7 @@ class WarehouseTransfer extends Model
     public function reject(): void
     {
         if (
-            !in_array(
+            ! in_array(
                 $this->status,
                 [
                     WarehouseTransferStatus::STATUS_PENDING,
@@ -168,21 +168,21 @@ class WarehouseTransfer extends Model
             )
         ) {
             throw new RuntimeException(
-                "Only a Pending or In Transit transfer can be rejected.",
+                'Only a Pending or In Transit transfer can be rejected.',
             );
         }
 
         DB::transaction(function () {
             if ($this->status === WarehouseTransferStatus::STATUS_IN_TRANSIT) {
                 foreach ($this->items as $item) {
-                    $item->product()->increment("stock", $item->qty);
+                    $item->product()->increment('stock', $item->qty);
                 }
             }
 
             $this->update([
-                "status" => WarehouseTransferStatus::STATUS_REJECTED,
+                'status' => WarehouseTransferStatus::STATUS_REJECTED,
             ]);
-            $this->logAudit("rejected");
+            $this->logAudit('rejected');
         });
     }
 }

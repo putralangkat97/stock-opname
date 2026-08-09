@@ -5,30 +5,31 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     /**
      * Run the migrations.
      */
     public function up(): void
     {
-        Schema::create("goods_receipts", function (Blueprint $table) {
+        Schema::create('goods_receipts', function (Blueprint $table) {
             $table->id();
-            $table->foreignId("supplier_id")->constrained()->restrictOnDelete();
+            $table->foreignId('supplier_id')->constrained()->restrictOnDelete();
             $table
-                ->foreignId("warehouse_id")
+                ->foreignId('warehouse_id')
                 ->constrained()
                 ->restrictOnDelete();
             $table
-                ->foreignId("received_by")
-                ->constrained("users")
+                ->foreignId('received_by')
+                ->constrained('users')
                 ->restrictOnDelete();
 
-            $table->string("receipt_number")->unique();
-            $table->string("po_number")->nullable();
-            $table->date("date");
-            $table->string("status")->default(GoodsReceiptStatus::STATUS_DRAFT);
-            $table->decimal("total_amount", 15, 2)->default(0);
-            $table->text("notes")->nullable();
+            $table->string('receipt_number')->unique();
+            $table->string('po_number')->nullable();
+            $table->date('date');
+            $table->string('status')->default(GoodsReceiptStatus::STATUS_DRAFT);
+            $table->decimal('total_amount', 15, 2)->default(0);
+            $table->text('notes')->nullable();
 
             $table->timestamps();
         });
@@ -39,6 +40,6 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::dropIfExists("goods_receipts");
+        Schema::dropIfExists('goods_receipts');
     }
 };

@@ -7,7 +7,6 @@ use App\Models\Category;
 use App\Models\Customer;
 use App\Models\Supplier;
 use App\Models\Unit;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class MasterDataSeeder extends Seeder

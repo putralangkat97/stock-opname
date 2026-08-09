@@ -13,24 +13,24 @@ use RuntimeException;
 
 class GoodsIssue extends Model
 {
-    use HasFactory, Auditable;
+    use Auditable, HasFactory;
 
     protected $fillable = [
-        "customer_id",
-        "warehouse_id",
-        "issued_by",
-        "issue_number",
-        "so_number",
-        "date",
-        "status",
-        "total_amount",
-        "notes",
+        'customer_id',
+        'warehouse_id',
+        'issued_by',
+        'issue_number',
+        'so_number',
+        'date',
+        'status',
+        'total_amount',
+        'notes',
     ];
 
     protected $casts = [
-        "date" => "date",
-        "total_amount" => "decimal:2",
-        "status" => GoodsIssueStatus::class,
+        'date' => 'date',
+        'total_amount' => 'decimal:2',
+        'status' => GoodsIssueStatus::class,
     ];
 
     public function customer(): BelongsTo
@@ -45,7 +45,7 @@ class GoodsIssue extends Model
 
     public function issuedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, "issued_by");
+        return $this->belongsTo(User::class, 'issued_by');
     }
 
     public function items(): HasMany
@@ -61,7 +61,7 @@ class GoodsIssue extends Model
     public function approve(): void
     {
         if ($this->status !== GoodsIssueStatus::STATUS_DRAFT) {
-            throw new RuntimeException("Only a Draft issue can be approved.");
+            throw new RuntimeException('Only a Draft issue can be approved.');
         }
 
         DB::transaction(function () {
@@ -74,11 +74,11 @@ class GoodsIssue extends Model
                     );
                 }
 
-                $product->decrement("stock", $item->qty);
+                $product->decrement('stock', $item->qty);
             }
 
-            $this->update(["status" => GoodsIssueStatus::STATUS_ISSUED]);
-            $this->logAudit("approved");
+            $this->update(['status' => GoodsIssueStatus::STATUS_ISSUED]);
+            $this->logAudit('approved');
 
             // AuditLog + low_stock notification dispatch hooks in here
             // once the Supporting batch is generated.
@@ -88,10 +88,10 @@ class GoodsIssue extends Model
     public function cancel(): void
     {
         if ($this->status !== GoodsIssueStatus::STATUS_DRAFT) {
-            throw new RuntimeException("Only a Draft issue can be cancelled.");
+            throw new RuntimeException('Only a Draft issue can be cancelled.');
         }
 
-        $this->update(["status" => GoodsIssueStatus::STATUS_CANCELLED]);
-        $this->logAudit("cancelled");
+        $this->update(['status' => GoodsIssueStatus::STATUS_CANCELLED]);
+        $this->logAudit('cancelled');
     }
 }

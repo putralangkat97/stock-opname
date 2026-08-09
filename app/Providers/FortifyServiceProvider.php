@@ -41,42 +41,43 @@ class FortifyServiceProvider extends ServiceProvider
             RedirectIfTwoFactorAuthenticatable::class,
         );
 
-        RateLimiter::for("login", function (Request $request) {
+        RateLimiter::for('login', function (Request $request) {
             $throttleKey = Str::transliterate(
-                Str::lower($request->input(Fortify::username())) .
-                    "|" .
+                Str::lower($request->input(Fortify::username())).
+                    '|'.
                     $request->ip(),
             );
 
             return Limit::perMinute(5)->by($throttleKey);
         });
 
-        RateLimiter::for("two-factor", function (Request $request) {
+        RateLimiter::for('two-factor', function (Request $request) {
             return Limit::perMinute(5)->by(
-                $request->session()->get("login.id"),
+                $request->session()->get('login.id'),
             );
         });
 
-        RateLimiter::for("passkeys", function (Request $request) {
-            $credentialId = $request->input("credential.id");
+        RateLimiter::for('passkeys', function (Request $request) {
+            $credentialId = $request->input('credential.id');
 
             return Limit::perMinute(10)->by(
-                ($credentialId ?: $request->session()->getId()) .
-                    "|" .
+                ($credentialId ?: $request->session()->getId()).
+                    '|'.
                     $request->ip(),
             );
         });
 
         Fortify::loginView(function () {
-            return Inertia::render("auth/login");
+            return Inertia::render('auth/login');
         });
 
         $this->app->instance(
             LogoutResponse::class,
-            new class implements LogoutResponse {
+            new class implements LogoutResponse
+            {
                 public function toResponse($request)
                 {
-                    return redirect("/login");
+                    return redirect('/login');
                 }
             },
         );

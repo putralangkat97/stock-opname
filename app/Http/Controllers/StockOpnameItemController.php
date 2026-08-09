@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Http\Requests\RecordCountRequest;
 use App\Models\StockOpnameItem;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class StockOpnameItemController extends Controller

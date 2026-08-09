@@ -7,7 +7,6 @@ use App\Http\Requests\UpdateBinLocationRequest;
 use App\Models\BinLocation;
 use App\Models\Rack;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 
 class BinLocationController extends Controller
 {

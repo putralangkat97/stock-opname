@@ -11,7 +11,7 @@ class Unit extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = ["code", "name", "symbol"];
+    protected $fillable = ['code', 'name', 'symbol'];
 
     public function products(): HasMany
     {

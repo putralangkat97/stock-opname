@@ -14,30 +14,30 @@ class Product extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        "category_id",
-        "brand_id",
-        "unit_id",
-        "warehouse_id",
-        "bin_location_id",
-        "sku",
-        "barcode",
-        "qr_code",
-        "name",
-        "stock",
-        "min_stock",
-        "max_stock",
-        "cost_price",
-        "selling_price",
-        "last_opname_date",
-        "is_fast_moving",
-        "image_url",
+        'category_id',
+        'brand_id',
+        'unit_id',
+        'warehouse_id',
+        'bin_location_id',
+        'sku',
+        'barcode',
+        'qr_code',
+        'name',
+        'stock',
+        'min_stock',
+        'max_stock',
+        'cost_price',
+        'selling_price',
+        'last_opname_date',
+        'is_fast_moving',
+        'image_url',
     ];
 
     protected $casts = [
-        "last_opname_date" => "date",
-        "is_fast_moving" => "boolean",
-        "cost_price" => "decimal:2",
-        "selling_price" => "decimal:2",
+        'last_opname_date' => 'date',
+        'is_fast_moving' => 'boolean',
+        'cost_price' => 'decimal:2',
+        'selling_price' => 'decimal:2',
     ];
 
     public function category(): BelongsTo
@@ -96,12 +96,12 @@ class Product extends Model
         return Attribute::make(
             get: function () {
                 if ($this->stock <= 0) {
-                    return "Out of Stock";
+                    return 'Out of Stock';
                 }
 
                 return $this->stock <= $this->min_stock
-                    ? "Low Stock"
-                    : "In Stock";
+                    ? 'Low Stock'
+                    : 'In Stock';
             },
         );
     }

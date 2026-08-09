@@ -11,11 +11,11 @@ class WarehouseTransferItem extends Model
     use HasFactory;
 
     protected $fillable = [
-        "warehouse_transfer_id",
-        "product_id",
-        "product_sku_snapshot",
-        "product_name_snapshot",
-        "qty",
+        'warehouse_transfer_id',
+        'product_id',
+        'product_sku_snapshot',
+        'product_name_snapshot',
+        'qty',
     ];
 
     public function warehouseTransfer(): BelongsTo
@@ -33,7 +33,7 @@ class WarehouseTransferItem extends Model
         static::saving(function (WarehouseTransferItem $item) {
             if (
                 $item->product_id &&
-                ($item->isDirty("product_id") || !$item->exists)
+                ($item->isDirty('product_id') || ! $item->exists)
             ) {
                 $product = $item->product ?? Product::find($item->product_id);
                 $item->product_sku_snapshot = $product?->sku;

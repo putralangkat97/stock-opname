@@ -11,18 +11,18 @@ class GoodsReceiptItem extends Model
     use HasFactory;
 
     protected $fillable = [
-        "goods_receipt_id",
-        "product_id",
-        "product_sku_snapshot",
-        "product_name_snapshot",
-        "qty",
-        "unit_price",
-        "subtotal",
+        'goods_receipt_id',
+        'product_id',
+        'product_sku_snapshot',
+        'product_name_snapshot',
+        'qty',
+        'unit_price',
+        'subtotal',
     ];
 
     protected $casts = [
-        "unit_price" => "decimal:2",
-        "subtotal" => "decimal:2",
+        'unit_price' => 'decimal:2',
+        'subtotal' => 'decimal:2',
     ];
 
     public function goodsReceipt(): BelongsTo
@@ -42,7 +42,7 @@ class GoodsReceiptItem extends Model
             // never re-derived later even if the product changes.
             if (
                 $item->product_id &&
-                ($item->isDirty("product_id") || !$item->exists)
+                ($item->isDirty('product_id') || ! $item->exists)
             ) {
                 $product = $item->product ?? Product::find($item->product_id);
                 $item->product_sku_snapshot = $product?->sku;

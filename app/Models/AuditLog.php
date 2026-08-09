@@ -5,24 +5,24 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
-use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Request;
 
 class AuditLog extends Model
 {
     protected $fillable = [
-        "user_id",
-        "role_snapshot",
-        "action",
-        "module",
-        "auditable_type",
-        "auditable_id",
-        "details",
-        "ip_address",
+        'user_id',
+        'role_snapshot',
+        'action',
+        'module',
+        'auditable_type',
+        'auditable_id',
+        'details',
+        'ip_address',
     ];
 
     protected $casts = [
-        "details" => "array",
+        'details' => 'array',
     ];
 
     public function user(): BelongsTo
@@ -48,15 +48,15 @@ class AuditLog extends Model
         $user = Auth::user();
 
         return self::create([
-            "user_id" => $user?->id,
+            'user_id' => $user?->id,
             // Requires Spatie's HasRoles trait on User (getRoleNames()).
-            "role_snapshot" => $user?->getRoleNames()->first(),
-            "action" => $action,
-            "module" => class_basename($model),
-            "auditable_type" => $model->getMorphClass(),
-            "auditable_id" => $model->getKey(),
-            "details" => $details,
-            "ip_address" => Request::ip(),
+            'role_snapshot' => $user?->getRoleNames()->first(),
+            'action' => $action,
+            'module' => class_basename($model),
+            'auditable_type' => $model->getMorphClass(),
+            'auditable_id' => $model->getKey(),
+            'details' => $details,
+            'ip_address' => Request::ip(),
         ]);
     }
 }

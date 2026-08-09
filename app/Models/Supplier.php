@@ -12,13 +12,13 @@ class Supplier extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        "code",
-        "name",
-        "contact_person",
-        "email",
-        "phone",
-        "address",
-        "city",
+        'code',
+        'name',
+        'contact_person',
+        'email',
+        'phone',
+        'address',
+        'city',
     ];
 
     public function goodsReceipts(): HasMany
