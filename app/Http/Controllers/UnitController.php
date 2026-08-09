@@ -15,7 +15,7 @@ class UnitController extends Controller
     {
         $this->authorize('viewAny', Unit::class);
 
-        return Inertia::render('Units/Index', [
+        return Inertia::render('units/index', [
             'units' => Unit::query()->withCount('products')->orderBy('name')->paginate(15),
         ]);
     }

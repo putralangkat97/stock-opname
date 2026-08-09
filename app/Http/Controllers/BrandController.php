@@ -15,7 +15,7 @@ class BrandController extends Controller
     {
         $this->authorize('viewAny', Brand::class);
 
-        return Inertia::render('Brands/Index', [
+        return Inertia::render('brands/index', [
             'brands' => Brand::query()->withCount('products')->orderBy('name')->paginate(15),
         ]);
     }

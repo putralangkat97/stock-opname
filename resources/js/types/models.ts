@@ -11,12 +11,17 @@ export interface Category {
     id: number;
     code: string;
     name: string;
+    description: string | null;
+    products_count?: number;
 }
 
 export interface Brand {
     id: number;
     code: string;
     name: string;
+    description: string | null;
+    logo_url: string | null;
+    products_count?: number;
 }
 
 export interface Unit {
@@ -24,6 +29,7 @@ export interface Unit {
     code: string;
     name: string;
     symbol: string;
+    products_count?: number;
 }
 
 export interface Warehouse {
@@ -42,6 +48,11 @@ export interface Supplier {
     id: number;
     code: string;
     name: string;
+    contact_person: string | null;
+    email: string | null;
+    phone: string | null;
+    address: string | null;
+    city: string | null;
 }
 
 export interface Product {
@@ -93,6 +104,11 @@ export interface Customer {
     id: number;
     code: string;
     name: string;
+    contact_person: string | null;
+    email: string | null;
+    phone: string | null;
+    address: string | null;
+    city: string | null;
 }
 
 export interface GoodsIssueItem {

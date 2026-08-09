@@ -15,7 +15,7 @@ class CustomerController extends Controller
     {
         $this->authorize('viewAny', Customer::class);
 
-        return Inertia::render('Customers/Index', [
+        return Inertia::render('customers/index', [
             'customers' => Customer::query()->orderBy('name')->paginate(15),
         ]);
     }

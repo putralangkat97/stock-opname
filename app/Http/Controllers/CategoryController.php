@@ -15,7 +15,7 @@ class CategoryController extends Controller
     {
         $this->authorize('viewAny', Category::class);
 
-        return Inertia::render('Categories/Index', [
+        return Inertia::render('categories/index', [
             'categories' => Category::query()
                 ->withCount('products')
                 ->orderBy('name')

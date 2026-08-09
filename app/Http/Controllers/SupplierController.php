@@ -15,7 +15,7 @@ class SupplierController extends Controller
     {
         $this->authorize('viewAny', Supplier::class);
 
-        return Inertia::render('Suppliers/Index', [
+        return Inertia::render('suppliers/index', [
             'suppliers' => Supplier::query()->orderBy('name')->paginate(15),
         ]);
     }
