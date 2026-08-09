@@ -2,6 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\GoodsIssueStatus;
+use App\Http\Requests\StoreGoodsIssueRequest;
+use App\Http\Requests\UpdateGoodsIssueRequest;
+use App\Models\Customer;
+use App\Models\GoodsIssue;
 use App\Models\Product;
 use App\Models\Warehouse;
 use Illuminate\Http\RedirectResponse;
@@ -28,7 +33,7 @@ class GoodsReceiptController extends Controller
             $query->whereIn('warehouse_id', $warehouses->pluck('id'));
         }
 
-        return Inertia::render('goods-issues/index', [
+        return Inertia::render('goods-receipts/index', [
             'goodsIssues' => $query->latest('date')->paginate(15),
             'customers' => Customer::query()->orderBy('name')->get(['id', 'code', 'name']),
             'warehouses' => $warehouses,
@@ -45,7 +50,7 @@ class GoodsReceiptController extends Controller
     {
         $this->authorize('view', $goodsIssue);
 
-        return Inertia::render('goods-issues/show', [
+        return Inertia::render('goods-receipts/show', [
             'goodsIssue' => $goodsIssue->load(['customer', 'warehouse', 'issuedBy', 'items.product']),
         ]);
     }
