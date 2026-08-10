@@ -36,12 +36,35 @@ export interface Warehouse {
     id: number;
     code: string;
     name: string;
+    location: string | null;
+    manager: string | null;
+    phone: string | null;
+    total_capacity: number;
 }
 
 export interface BinLocation {
     id: number;
     code: string;
     warehouse_id: number;
+    rack_id?: number;
+    capacity?: number;
+}
+
+// Eloquent relation names keep their exact PHP method-name casing in JSON
+// (unlike DB columns, which are naturally snake_case) — Rack::binLocations()
+// serializes as "binLocations", not "bin_locations".
+export interface Rack {
+    id: number;
+    warehouse_id: number;
+    code: string;
+    zone: string | null;
+    binLocations?: BinLocation[];
+}
+
+// Shape returned by WarehouseController::show() — warehouse with racks eager
+// loaded, each rack with its binLocations eager loaded.
+export interface WarehouseWithRacks extends Warehouse {
+    racks: Rack[];
 }
 
 export interface Supplier {

@@ -26,7 +26,7 @@ class WarehouseController extends Controller
             $query->whereIn('id', $user->warehouses()->pluck('warehouses.id'));
         }
 
-        return Inertia::render('Warehouses/Index', [
+        return Inertia::render('warehouses/index', [
             'warehouses' => $query->orderBy('name')->paginate(15),
         ]);
     }
@@ -35,7 +35,7 @@ class WarehouseController extends Controller
     {
         $this->authorize('view', $warehouse);
 
-        return Inertia::render('Warehouses/Show', [
+        return Inertia::render('warehouses/show', [
             'warehouse' => $warehouse->load(['racks.binLocations']),
         ]);
     }
