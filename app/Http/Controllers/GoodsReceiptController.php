@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\GoodsIssueStatus;
-use App\Http\Requests\StoreGoodsIssueRequest;
-use App\Http\Requests\UpdateGoodsIssueRequest;
-use App\Models\Customer;
-use App\Models\GoodsIssue;
+use App\Enums\GoodsReceiptStatus;
+use App\Http\Requests\StoreGoodsReceiptRequest;
+use App\Http\Requests\UpdateGoodsReceiptRequest;
+use App\Models\GoodsReceipt;
 use App\Models\Product;
+use App\Models\Supplier;
 use App\Models\Warehouse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -34,13 +34,8 @@ class GoodsReceiptController extends Controller
         }
 
         return Inertia::render('goods-receipts/index', [
-<<<<<<< Updated upstream
-            'goodsIssues' => $query->latest('date')->paginate(15),
-            'customers' => Customer::query()->orderBy('name')->get(['id', 'code', 'name']),
-=======
             'goodsReceipts' => $query->latest('date')->paginate(15),
             'suppliers' => Supplier::query()->orderBy('name')->get(['id', 'code', 'name']),
->>>>>>> Stashed changes
             'warehouses' => $warehouses,
             // sku/name only — the Create dialog needs enough to search/pick a
             // line item, not the full Product payload.
@@ -55,11 +50,7 @@ class GoodsReceiptController extends Controller
         $this->authorize('view', $goodsReceipt);
 
         return Inertia::render('goods-receipts/show', [
-<<<<<<< Updated upstream
-            'goodsIssue' => $goodsIssue->load(['customer', 'warehouse', 'issuedBy', 'items.product']),
-=======
             'goodsReceipt' => $goodsReceipt->load(['supplier', 'warehouse', 'receivedBy', 'items.product']),
->>>>>>> Stashed changes
         ]);
     }
 
