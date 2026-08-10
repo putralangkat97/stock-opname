@@ -25,15 +25,15 @@ import {
     AlertDialogCancel,
     AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import type { GoodsIssue, GoodsIssueStatusValue } from "@/types/models";
+import type { GoodsReceipt, GoodsReceiptStatusValue } from "@/types/models";
 
 const props = defineProps<{
-    goodsIssue: GoodsIssue;
+    goodsReceipt: GoodsReceipt;
 }>();
 
 const breadcrumbs = [
-    { label: "Goods Issues", href: "/goods-issues" },
-    { label: props.goodsIssue.issue_number },
+    { label: "Goods Receipts", href: "/goods-receipts" },
+    { label: props.goodsReceipt.receipt_number },
 ];
 
 const page = usePage();
@@ -41,16 +41,14 @@ watch(
     () => page.props.flash,
     (flash) => {
         if (flash?.success) toast.success(flash.success);
-        // Insufficient-stock rejections from approve() land here as a flash
-        // error now (see GoodsIssueController::approve()'s try/catch).
         if (flash?.error) toast.error(flash.error);
     },
     { immediate: true },
 );
 
-function statusVariant(status: GoodsIssueStatusValue) {
+function statusVariant(status: GoodsReceiptStatusValue) {
     if (status === "Cancelled") return "destructive";
-    if (status === "Issued") return "default";
+    if (status === "Received") return "default";
     return "secondary";
 }
 
@@ -61,7 +59,7 @@ const processing = ref(false);
 function approve() {
     processing.value = true;
     router.post(
-        `/goods-issues/${props.goodsIssue.id}/approve`,
+        `/goods-receipts/${props.goodsReceipt.id}/approve`,
         {},
         {
             onFinish: () => {
@@ -75,7 +73,7 @@ function approve() {
 function cancel() {
     processing.value = true;
     router.post(
-        `/goods-issues/${props.goodsIssue.id}/cancel`,
+        `/goods-receipts/${props.goodsReceipt.id}/cancel`,
         {},
         {
             onFinish: () => {
@@ -93,21 +91,21 @@ function cancel() {
             <div class="flex items-center justify-between">
                 <div>
                     <h1 class="text-xl font-semibold">
-                        {{ goodsIssue.issue_number }}
+                        {{ goodsReceipt.receipt_number }}
                     </h1>
                     <p class="text-sm text-muted-foreground">
-                        {{ goodsIssue.warehouse.name }} →
-                        {{ goodsIssue.customer.name }}
+                        {{ goodsReceipt.supplier.name }} →
+                        {{ goodsReceipt.warehouse.name }}
                     </p>
                 </div>
                 <div class="flex items-center gap-2">
                     <Badge
-                        :variant="statusVariant(goodsIssue.status)"
+                        :variant="statusVariant(goodsReceipt.status)"
                         class="text-sm"
                     >
-                        {{ goodsIssue.status }}
+                        {{ goodsReceipt.status }}
                     </Badge>
-                    <template v-if="goodsIssue.status === 'Draft'">
+                    <template v-if="goodsReceipt.status === 'Draft'">
                         <Button
                             variant="outline"
                             @click="cancelDialogOpen = true"
@@ -129,24 +127,27 @@ function cancel() {
                     class="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4"
                 >
                     <div>
-                        <p class="text-muted-foreground">SO Number</p>
-                        <p>{{ goodsIssue.so_number ?? "—" }}</p>
+                        <p class="text-muted-foreground">PO Number</p>
+                        <p>{{ goodsReceipt.po_number ?? "—" }}</p>
                     </div>
                     <div>
                         <p class="text-muted-foreground">Date</p>
-                        <p>{{ goodsIssue.date }}</p>
+                        <p>{{ goodsReceipt.date }}</p>
                     </div>
                     <div>
-                        <p class="text-muted-foreground">Issued By</p>
-                        <p>{{ goodsIssue.issuedBy.name }}</p>
+                        <p class="text-muted-foreground">Received By</p>
+                        <!-- NOTE: relation name is receivedBy (camelCase), matching
+                             the GoodsReceipt::receivedBy() method — Eloquent relations
+                             keep their PHP method-name casing in JSON, unlike DB columns. -->
+                        <p>{{ goodsReceipt.receivedBy.name }}</p>
                     </div>
                     <div>
                         <p class="text-muted-foreground">Total</p>
-                        <p>{{ goodsIssue.total_amount }}</p>
+                        <p>{{ goodsReceipt.total_amount }}</p>
                     </div>
-                    <div v-if="goodsIssue.notes" class="col-span-full">
+                    <div v-if="goodsReceipt.notes" class="col-span-full">
                         <p class="text-muted-foreground">Notes</p>
-                        <p>{{ goodsIssue.notes }}</p>
+                        <p>{{ goodsReceipt.notes }}</p>
                     </div>
                 </CardContent>
             </Card>
@@ -168,7 +169,7 @@ function cancel() {
                         </TableHeader>
                         <TableBody>
                             <TableRow
-                                v-for="item in goodsIssue.items"
+                                v-for="item in goodsReceipt.items"
                                 :key="item.id"
                             >
                                 <TableCell class="font-mono text-sm">
@@ -191,7 +192,7 @@ function cancel() {
                                     Total
                                 </TableCell>
                                 <TableCell class="font-medium">
-                                    {{ goodsIssue.total_amount }}
+                                    {{ goodsReceipt.total_amount }}
                                 </TableCell>
                             </TableRow>
                         </TableFooter>
@@ -199,7 +200,7 @@ function cancel() {
                 </CardContent>
             </Card>
 
-            <Link href="/goods-issues">
+            <Link href="/goods-receipts">
                 <Button variant="outline">Back to list</Button>
             </Link>
         </div>
@@ -207,13 +208,11 @@ function cancel() {
         <AlertDialog v-model:open="approveDialogOpen">
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Approve this issue?</AlertDialogTitle>
+                    <AlertDialogTitle>Approve this receipt?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Stock will be deducted from
-                        {{ goodsIssue.warehouse.name }} for every line item. If
-                        any line exceeds available stock, the whole approval
-                        will be rejected — nothing partial. This can't be
-                        undone.
+                        Stock will be added to
+                        {{ goodsReceipt.warehouse.name }} for every line item.
+                        This can't be undone.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -228,16 +227,16 @@ function cancel() {
         <AlertDialog v-model:open="cancelDialogOpen">
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Cancel this issue?</AlertDialogTitle>
+                    <AlertDialogTitle>Cancel this receipt?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        No stock has been deducted yet, so nothing to reverse —
-                        this just marks the issue as Cancelled.
+                        No stock has been added yet, so nothing to reverse —
+                        this just marks the receipt as Cancelled.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel>Keep it</AlertDialogCancel>
                     <AlertDialogAction :disabled="processing" @click="cancel">
-                        Cancel Issue
+                        Cancel Receipt
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>

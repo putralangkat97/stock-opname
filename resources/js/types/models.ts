@@ -70,7 +70,7 @@ export interface Product {
     brand: Brand;
     unit: Unit;
     warehouse: Warehouse;
-    bin_location: BinLocation | null;
+    binLocation: BinLocation | null;
 }
 
 export interface GoodsReceiptItem {
@@ -96,7 +96,7 @@ export interface GoodsReceipt {
     notes: string | null;
     supplier: Supplier;
     warehouse: Warehouse;
-    received_by: { id: number; name: string };
+    receivedBy: { id: number; name: string };
     items?: GoodsReceiptItem[];
 }
 
@@ -134,7 +134,7 @@ export interface GoodsIssue {
     notes: string | null;
     customer: Customer;
     warehouse: Warehouse;
-    issued_by: { id: number; name: string };
+    issuedBy: { id: number; name: string };
     items?: GoodsIssueItem[];
 }
 
@@ -161,7 +161,7 @@ export interface StockAdjustment {
     status: StockAdjustmentStatusValue;
     notes: string | null;
     warehouse: Warehouse;
-    adjusted_by: { id: number; name: string };
+    adjustedBy: { id: number; name: string };
     items?: StockAdjustmentItem[];
 }
 
@@ -183,10 +183,10 @@ export interface WarehouseTransfer {
     date: string;
     status: WarehouseTransferStatusValue;
     notes: string | null;
-    from_warehouse: Warehouse;
-    to_warehouse: Warehouse;
-    transferred_by: { id: number; name: string };
-    received_by: { id: number; name: string } | null;
+    fromWarehouse: Warehouse;
+    toWarehouse: Warehouse;
+    transferredBy: { id: number; name: string };
+    receivedBy: { id: number; name: string } | null;
     items?: WarehouseTransferItem[];
 }
 
@@ -205,7 +205,7 @@ export interface StockOpnameItem {
     scanned_at: string | null;
     notes: string | null;
     status: StockOpnameItemStatusValue;
-    scanned_by: { id: number; name: string } | null;
+    scannedBy: { id: number; name: string } | null;
     product?: Product;
 }
 
@@ -223,7 +223,7 @@ export interface StockOpname {
     notes: string | null;
     approved_at: string | null;
     warehouse: Warehouse;
-    assigned_to: { id: number; name: string };
-    approved_by: { id: number; name: string } | null;
+    assignedTo: { id: number; name: string };
+    approvedBy: { id: number; name: string } | null;
     items?: StockOpnameItem[];
 }

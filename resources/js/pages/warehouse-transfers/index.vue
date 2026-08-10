@@ -163,9 +163,9 @@ function submit() {
                             {{ transfer.transfer_number }}
                         </TableCell>
                         <TableCell>
-                            {{ transfer.from_warehouse.name }}
+                            {{ transfer.fromWarehouse.name }}
                         </TableCell>
-                        <TableCell>{{ transfer.to_warehouse.name }}</TableCell>
+                        <TableCell>{{ transfer.toWarehouse.name }}</TableCell>
                         <TableCell>{{ transfer.date }}</TableCell>
                         <TableCell>
                             <Badge :variant="statusVariant(transfer.status)">

@@ -168,7 +168,7 @@ function submit() {
                         </TableCell>
                         <TableCell>{{ opname.title }}</TableCell>
                         <TableCell>{{ opname.warehouse.name }}</TableCell>
-                        <TableCell>{{ opname.assigned_to.name }}</TableCell>
+                        <TableCell>{{ opname.assignedTo.name }}</TableCell>
                         <TableCell>{{ opname.start_date }}</TableCell>
                         <TableCell>
                             <Badge :variant="statusVariant(opname.status)">

@@ -20,10 +20,10 @@ class GoodsReceiptController extends Controller
 {
     public function index(): Response
     {
-        $this->authorize('viewAny', GoodsIssue::class);
+        $this->authorize('viewAny', GoodsReceipt::class);
 
         $user = Auth::user();
-        $query = GoodsIssue::query()->with(['customer', 'warehouse', 'issuedBy']);
+        $query = GoodsReceipt::query()->with(['supplier', 'warehouse', 'receivedBy']);
 
         $warehouses = $user->hasRole('Super Admin')
             ? Warehouse::query()->orderBy('name')->get(['id', 'code', 'name'])
@@ -34,102 +34,111 @@ class GoodsReceiptController extends Controller
         }
 
         return Inertia::render('goods-receipts/index', [
+<<<<<<< Updated upstream
             'goodsIssues' => $query->latest('date')->paginate(15),
             'customers' => Customer::query()->orderBy('name')->get(['id', 'code', 'name']),
+=======
+            'goodsReceipts' => $query->latest('date')->paginate(15),
+            'suppliers' => Supplier::query()->orderBy('name')->get(['id', 'code', 'name']),
+>>>>>>> Stashed changes
             'warehouses' => $warehouses,
-            // 'stock' included so the form can warn before submitting a qty
-            // the product doesn't have — the real guard is still server-side
-            // in GoodsIssue::approve(), this is just a UX nicety.
+            // sku/name only — the Create dialog needs enough to search/pick a
+            // line item, not the full Product payload.
             'products' => Product::query()
                 ->whereIn('warehouse_id', $warehouses->pluck('id'))
-                ->get(['id', 'sku', 'name', 'warehouse_id', 'stock', 'selling_price']),
+                ->get(['id', 'sku', 'name', 'warehouse_id', 'cost_price']),
         ]);
     }
 
-    public function show(GoodsIssue $goodsIssue): Response
+    public function show(GoodsReceipt $goodsReceipt): Response
     {
-        $this->authorize('view', $goodsIssue);
+        $this->authorize('view', $goodsReceipt);
 
         return Inertia::render('goods-receipts/show', [
+<<<<<<< Updated upstream
             'goodsIssue' => $goodsIssue->load(['customer', 'warehouse', 'issuedBy', 'items.product']),
+=======
+            'goodsReceipt' => $goodsReceipt->load(['supplier', 'warehouse', 'receivedBy', 'items.product']),
+>>>>>>> Stashed changes
         ]);
     }
 
-    public function store(StoreGoodsIssueRequest $request): RedirectResponse
+    public function store(StoreGoodsReceiptRequest $request): RedirectResponse
     {
-        $this->authorize('create', GoodsIssue::class);
+        $this->authorize('create', GoodsReceipt::class);
 
         $validated = $request->validated();
 
-        $goodsIssue = DB::transaction(function () use ($validated) {
-            $goodsIssue = GoodsIssue::query()->create([
-                'customer_id' => $validated['customer_id'],
+        $goodsReceipt = DB::transaction(function () use ($validated) {
+            $goodsReceipt = GoodsReceipt::query()->create([
+                'supplier_id' => $validated['supplier_id'],
                 'warehouse_id' => $validated['warehouse_id'],
-                'issued_by' => Auth::id(),
-                'issue_number' => $this->generateIssueNumber(),
-                'so_number' => $validated['so_number'] ?? null,
+                'received_by' => Auth::id(),
+                'receipt_number' => $this->generateReceiptNumber(),
+                'po_number' => $validated['po_number'] ?? null,
                 'date' => $validated['date'],
-                'status' => GoodsIssueStatus::STATUS_DRAFT,
+                'status' => GoodsReceiptStatus::STATUS_DRAFT,
                 'notes' => $validated['notes'] ?? null,
             ]);
 
-            $this->syncItems($goodsIssue, $validated['items']);
+            $this->syncItems($goodsReceipt, $validated['items']);
 
-            return $goodsIssue;
+            return $goodsReceipt;
         });
 
         return redirect()
-            ->route('goods-issues.show', $goodsIssue)
-            ->with('success', 'Goods issue created as Draft.');
+            ->route('goods-receipts.show', $goodsReceipt)
+            ->with('success', 'Goods receipt created as Draft.');
     }
 
-    public function update(UpdateGoodsIssueRequest $request, GoodsIssue $goodsIssue): RedirectResponse
+    public function update(UpdateGoodsReceiptRequest $request, GoodsReceipt $goodsReceipt): RedirectResponse
     {
-        $this->authorize('update', $goodsIssue);
+        $this->authorize('update', $goodsReceipt);
 
         $validated = $request->validated();
 
-        DB::transaction(function () use ($goodsIssue, $validated) {
-            $goodsIssue->update([
-                'customer_id' => $validated['customer_id'],
-                'so_number' => $validated['so_number'] ?? null,
+        DB::transaction(function () use ($goodsReceipt, $validated) {
+            $goodsReceipt->update([
+                'supplier_id' => $validated['supplier_id'],
+                'po_number' => $validated['po_number'] ?? null,
                 'date' => $validated['date'],
                 'notes' => $validated['notes'] ?? null,
             ]);
 
-            $goodsIssue->items()->delete();
-            $this->syncItems($goodsIssue, $validated['items']);
+            $goodsReceipt->items()->delete();
+            $this->syncItems($goodsReceipt, $validated['items']);
         });
 
-        return back()->with('success', 'Goods issue updated.');
+        return back()->with('success', 'Goods receipt updated.');
     }
 
-    public function approve(GoodsIssue $goodsIssue): RedirectResponse
+    public function approve(GoodsReceipt $goodsReceipt): RedirectResponse
     {
-        $this->authorize('approve', $goodsIssue);
+        $this->authorize('approve', $goodsReceipt);
 
         try {
-            $goodsIssue->approve();
+            $goodsReceipt->approve();
         } catch (\RuntimeException $e) {
-            // Insufficient stock, or wrong status — a real business-rule
-            // rejection, not a bug. Surface it as a flash error rather than
-            // a raw 500/Inertia error modal.
             return back()->with('error', $e->getMessage());
         }
 
-        return back()->with('success', 'Goods issue approved — stock updated.');
+        return back()->with('success', 'Goods receipt approved — stock updated.');
     }
 
-    public function cancel(GoodsIssue $goodsIssue): RedirectResponse
+    public function cancel(GoodsReceipt $goodsReceipt): RedirectResponse
     {
-        $this->authorize('cancel', $goodsIssue);
+        $this->authorize('cancel', $goodsReceipt);
 
-        $goodsIssue->cancel();
+        $goodsReceipt->cancel();
 
-        return back()->with('success', 'Goods issue cancelled.');
+        return back()->with('success', 'Goods receipt cancelled.');
     }
 
-    private function syncItems(GoodsIssue $goodsIssue, array $items): void
+    /**
+     * Rebuilds the total_amount from qty * unit_price on every write — never
+     * trust a total sent from the client.
+     */
+    private function syncItems(GoodsReceipt $goodsReceipt, array $items): void
     {
         $total = 0;
 
@@ -138,7 +147,7 @@ class GoodsReceiptController extends Controller
             $subtotal = $item['qty'] * $item['unit_price'];
             $total += $subtotal;
 
-            $goodsIssue->items()->create([
+            $goodsReceipt->items()->create([
                 'product_id' => $product->id,
                 'qty' => $item['qty'],
                 'unit_price' => $item['unit_price'],
@@ -146,11 +155,11 @@ class GoodsReceiptController extends Controller
             ]);
         }
 
-        $goodsIssue->update(['total_amount' => $total]);
+        $goodsReceipt->update(['total_amount' => $total]);
     }
 
-    private function generateIssueNumber(): string
+    private function generateReceiptNumber(): string
     {
-        return 'GI-'.now()->format('Ymd').'-'.Str::upper(Str::random(5));
+        return 'GR-'.now()->format('Ymd').'-'.Str::upper(Str::random(5));
     }
 }

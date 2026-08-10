@@ -127,8 +127,8 @@ function openEditDialog(product: Product) {
     form.brand_id = String(product.brand.id);
     form.unit_id = String(product.unit.id);
     form.warehouse_id = String(product.warehouse.id);
-    form.bin_location_id = product.bin_location
-        ? String(product.bin_location.id)
+    form.bin_location_id = product.binLocation
+        ? String(product.binLocation.id)
         : "";
     form.sku = product.sku;
     form.barcode = product.barcode ?? "";
