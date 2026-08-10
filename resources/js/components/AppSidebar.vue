@@ -1,12 +1,20 @@
 <script setup lang="ts">
 import type { SidebarProps } from "@/components/ui/sidebar";
-import { usePage } from "@inertiajs/vue3";
+import { Link, usePage } from "@inertiajs/vue3";
 import {
     HomeIcon,
     MoveDownLeftIcon,
     MoveUpRightIcon,
     ArrowRightLeftIcon,
     SlidersHorizontalIcon,
+    ClipboardListIcon,
+    PackageIcon,
+    TagIcon,
+    Ruler,
+    WarehouseIcon,
+    TruckIcon,
+    UsersIcon,
+    ScrollTextIcon,
     CommandIcon,
 } from "@lucide/vue";
 import NavMain from "@/components/NavMain.vue";
@@ -32,42 +40,71 @@ const appName = import.meta.env.VITE_APP_NAME || "Stock Opname";
 
 const data = {
     user: {
-        name: "shadcn",
-        email: "m@example.com",
-        avatar: "/avatars/shadcn.jpg",
+        name: page.props.auth.user?.name ?? "User",
+        email: page.props.auth.user?.email ?? "",
+        avatar: "",
     },
     projects: [
         {
             name: "Dashboard",
-            url: "#",
+            url: "/dashboard",
             icon: HomeIcon,
             isActive: page.component === "dashboard/index",
         },
     ],
     navMain: [
         {
+            title: "Data Master",
+            url: "#",
+            items: [
+                { title: "Produk", url: "/products", icon: PackageIcon },
+                { title: "Kategori", url: "/categories", icon: TagIcon },
+                { title: "Merek", url: "/brands", icon: TagIcon },
+                { title: "Satuan", url: "/units", icon: Ruler },
+                { title: "Gudang", url: "/warehouses", icon: WarehouseIcon },
+                { title: "Pemasok", url: "/suppliers", icon: TruckIcon },
+                { title: "Pelanggan", url: "/customers", icon: UsersIcon },
+            ],
+        },
+        {
             title: "Transaksi Stok",
             url: "#",
             items: [
                 {
                     title: "Penerimaan",
-                    url: "#",
+                    url: "/goods-receipts",
                     icon: MoveDownLeftIcon,
                 },
                 {
                     title: "Pengeluaran",
-                    url: "#",
+                    url: "/goods-issues",
                     icon: MoveUpRightIcon,
                 },
                 {
                     title: "Transfer Gudang",
-                    url: "#",
+                    url: "/warehouse-transfers",
                     icon: ArrowRightLeftIcon,
                 },
                 {
                     title: "Penyesuaian",
-                    url: "#",
+                    url: "/stock-adjustments",
                     icon: SlidersHorizontalIcon,
+                },
+                {
+                    title: "Stok Opname",
+                    url: "/stock-opnames",
+                    icon: ClipboardListIcon,
+                },
+            ],
+        },
+        {
+            title: "Administrasi",
+            url: "#",
+            items: [
+                {
+                    title: "Log Audit",
+                    url: "/audit-logs",
+                    icon: ScrollTextIcon,
                 },
             ],
         },
