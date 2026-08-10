@@ -250,3 +250,16 @@ export interface StockOpname {
     approvedBy: { id: number; name: string } | null;
     items?: StockOpnameItem[];
 }
+
+export interface AuditLog {
+    id: number;
+    action: string;
+    module: string;
+    role_snapshot: string | null;
+    auditable_type: string;
+    auditable_id: number;
+    details: Record<string, unknown> | null;
+    ip_address: string | null;
+    created_at: string;
+    user: { id: number; name: string } | null;
+}

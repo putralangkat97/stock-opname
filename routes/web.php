@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\BinLocationController;
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\CategoryController;
@@ -84,4 +85,7 @@ Route::middleware(['auth'])->group(function () {
     // route — this model only ever needs the one custom action, never plain CRUD.
     Route::post('stock-opname-items/{stock_opname_item}/record-count', [StockOpnameItemController::class, 'recordCount'])
         ->name('stock-opname-items.record-count');
+
+    // Audit Log
+    Route::get('audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
 });
