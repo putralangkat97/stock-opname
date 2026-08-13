@@ -18,6 +18,7 @@ import {
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogHeader,
     DialogTitle,
     DialogFooter,
@@ -37,6 +38,7 @@ import type {
     StockAdjustmentReasonValue,
     Warehouse,
 } from "@/types/models";
+import { LoaderIcon } from "@lucide/vue";
 
 interface SimpleProduct {
     id: number;
@@ -198,6 +200,7 @@ function submit() {
             <DialogContent class="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
                 <DialogHeader>
                     <DialogTitle>New Stock Adjustment</DialogTitle>
+                    <DialogDescription>Form stock adjustment</DialogDescription>
                 </DialogHeader>
 
                 <form class="flex flex-col gap-4" @submit.prevent="submit">
@@ -236,12 +239,12 @@ function submit() {
                                     <SelectValue placeholder="Select type" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="IN"
-                                        >IN — add stock</SelectItem
-                                    >
-                                    <SelectItem value="OUT"
-                                        >OUT — remove stock</SelectItem
-                                    >
+                                    <SelectItem value="IN">
+                                        IN — add stock
+                                    </SelectItem>
+                                    <SelectItem value="OUT">
+                                        OUT — remove stock
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
                             <FieldError :errors="[form.errors.type]" />
@@ -350,8 +353,16 @@ function submit() {
                     </Field>
 
                     <DialogFooter>
-                        <Button type="submit" :disabled="form.processing">
-                            Create as Pending
+                        <Button
+                            type="submit"
+                            class="w-full"
+                            :disabled="form.processing"
+                        >
+                            <LoaderIcon
+                                v-if="form.processing"
+                                class="animate-spin"
+                            />
+                            <template v-else> Create as Pending </template>
                         </Button>
                     </DialogFooter>
                 </form>

@@ -119,7 +119,7 @@ export interface GoodsReceipt {
     notes: string | null;
     supplier: Supplier;
     warehouse: Warehouse;
-    receivedBy: { id: number; name: string };
+    received_by: { id: number; name: string };
     items?: GoodsReceiptItem[];
 }
 
@@ -157,7 +157,7 @@ export interface GoodsIssue {
     notes: string | null;
     customer: Customer;
     warehouse: Warehouse;
-    issuedBy: { id: number; name: string };
+    issued_by: { id: number; name: string };
     items?: GoodsIssueItem[];
 }
 
@@ -206,10 +206,10 @@ export interface WarehouseTransfer {
     date: string;
     status: WarehouseTransferStatusValue;
     notes: string | null;
-    fromWarehouse: Warehouse;
-    toWarehouse: Warehouse;
-    transferredBy: { id: number; name: string };
-    receivedBy: { id: number; name: string } | null;
+    from_warehouse: Warehouse;
+    to_warehouse: Warehouse;
+    transferred_by: { id: number; name: string };
+    received_by: { id: number; name: string } | null;
     items?: WarehouseTransferItem[];
 }
 

@@ -136,10 +136,7 @@ function cancel() {
                     </div>
                     <div>
                         <p class="text-muted-foreground">Received By</p>
-                        <!-- NOTE: relation name is receivedBy (camelCase), matching
-                             the GoodsReceipt::receivedBy() method — Eloquent relations
-                             keep their PHP method-name casing in JSON, unlike DB columns. -->
-                        <p>{{ goodsReceipt.receivedBy.name }}</p>
+                        <p>{{ goodsReceipt.received_by.name }}</p>
                     </div>
                     <div>
                         <p class="text-muted-foreground">Total</p>

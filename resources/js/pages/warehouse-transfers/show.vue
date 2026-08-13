@@ -112,8 +112,8 @@ function reject() {
                         {{ warehouseTransfer.transfer_number }}
                     </h1>
                     <p class="text-sm text-muted-foreground">
-                        {{ warehouseTransfer.fromWarehouse.name }} →
-                        {{ warehouseTransfer.toWarehouse.name }}
+                        {{ warehouseTransfer.from_warehouse.name }} →
+                        {{ warehouseTransfer.to_warehouse.name }}
                     </p>
                 </div>
                 <div class="flex items-center gap-2">
@@ -205,11 +205,11 @@ function reject() {
                     </div>
                     <div>
                         <p class="text-muted-foreground">Transferred By</p>
-                        <p>{{ warehouseTransfer.transferredBy.name }}</p>
+                        <p>{{ warehouseTransfer.transferred_by.name }}</p>
                     </div>
                     <div>
                         <p class="text-muted-foreground">Received By</p>
-                        <p>{{ warehouseTransfer.receivedBy?.name ?? "—" }}</p>
+                        <p>{{ warehouseTransfer.received_by?.name ?? "—" }}</p>
                     </div>
                     <div v-if="warehouseTransfer.notes" class="col-span-full">
                         <p class="text-muted-foreground">Notes</p>
@@ -262,7 +262,7 @@ function reject() {
                     </AlertDialogTitle>
                     <AlertDialogDescription>
                         Stock will be deducted from
-                        {{ warehouseTransfer.fromWarehouse.name }} now — it
+                        {{ warehouseTransfer.from_warehouse.name }} now — it
                         won't be added to the destination until you Complete the
                         transfer.
                     </AlertDialogDescription>
@@ -285,7 +285,7 @@ function reject() {
                     <AlertDialogTitle>Complete this transfer?</AlertDialogTitle>
                     <AlertDialogDescription>
                         Stock will be added to
-                        {{ warehouseTransfer.toWarehouse.name }} for every line
+                        {{ warehouseTransfer.to_warehouse.name }} for every line
                         item, creating a new product row there if this is the
                         first time these SKUs have stock at that warehouse.
                     </AlertDialogDescription>
@@ -308,7 +308,7 @@ function reject() {
                             v-if="warehouseTransfer.status === 'In Transit'"
                         >
                             Stock already deducted from
-                            {{ warehouseTransfer.fromWarehouse.name }}
+                            {{ warehouseTransfer.from_warehouse.name }}
                             will be restored — nothing is lost.
                         </template>
                         <template v-else>

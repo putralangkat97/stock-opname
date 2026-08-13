@@ -138,7 +138,7 @@ function cancel() {
                     </div>
                     <div>
                         <p class="text-muted-foreground">Issued By</p>
-                        <p>{{ goodsIssue.issuedBy.name }}</p>
+                        <p>{{ goodsIssue.issued_by.name }}</p>
                     </div>
                     <div>
                         <p class="text-muted-foreground">Total</p>
