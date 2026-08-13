@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogHeader,
     DialogTitle,
     DialogFooter,
@@ -26,6 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import type { WarehouseWithRacks, Rack, BinLocation } from "@/types/models";
+import { LoaderIcon } from "@lucide/vue";
 
 const props = defineProps<{
     warehouse: WarehouseWithRacks;
@@ -271,6 +273,7 @@ function confirmDeleteBin() {
                     <DialogTitle>
                         {{ editingRack ? "Edit Rack" : "Add Rack" }}
                     </DialogTitle>
+                    <DialogDescription>Form rack</DialogDescription>
                 </DialogHeader>
                 <form class="flex flex-col gap-4" @submit.prevent="submitRack">
                     <Field>
@@ -290,8 +293,20 @@ function confirmDeleteBin() {
                         <FieldError :errors="[rackForm.errors.zone]" />
                     </Field>
                     <DialogFooter>
-                        <Button type="submit" :disabled="rackForm.processing">
-                            {{ editingRack ? "Save Changes" : "Create Rack" }}
+                        <Button
+                            type="submit"
+                            class="w-full"
+                            :disabled="rackForm.processing"
+                        >
+                            <LoaderIcon
+                                v-if="rackForm.processing"
+                                class="animate-spin"
+                            />
+                            <template v-else>
+                                {{
+                                    editingRack ? "Save Changes" : "Create Rack"
+                                }}
+                            </template>
                         </Button>
                     </DialogFooter>
                 </form>

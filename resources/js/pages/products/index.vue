@@ -18,6 +18,7 @@ import {
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogHeader,
     DialogTitle,
     DialogFooter,
@@ -49,6 +50,7 @@ import type {
     Warehouse,
     BinLocation,
 } from "@/types/models";
+import { LoaderIcon } from "@lucide/vue";
 
 const props = defineProps<{
     products: PaginatedData<Product>;
@@ -59,6 +61,8 @@ const props = defineProps<{
     warehouses: Warehouse[];
     binLocations: BinLocation[];
 }>();
+
+console.log(props.warehouses);
 
 const breadcrumbs = [{ label: "Products", href: "/products" }];
 
@@ -193,7 +197,7 @@ function statusVariant(status: Product["status"]) {
                         <SelectValue placeholder="All categories" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="">All categories</SelectItem>
+                        <SelectItem value="none">All categories</SelectItem>
                         <SelectItem
                             v-for="category in categories"
                             :key="category.id"
@@ -211,7 +215,7 @@ function statusVariant(status: Product["status"]) {
                         <SelectValue placeholder="All warehouses" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="">All warehouses</SelectItem>
+                        <SelectItem value="none">All warehouses</SelectItem>
                         <SelectItem
                             v-for="warehouse in warehouses"
                             :key="warehouse.id"
@@ -306,11 +310,12 @@ function statusVariant(status: Product["status"]) {
 
         <!-- Create / Edit dialog -->
         <Dialog v-model:open="dialogOpen">
-            <DialogContent class="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+            <DialogContent class="max-h-[85vh] overflow-y-auto sm:max-w-xl">
                 <DialogHeader>
                     <DialogTitle>
                         {{ editingProduct ? "Edit Product" : "Add Product" }}
                     </DialogTitle>
+                    <DialogDescription>Form product</DialogDescription>
                 </DialogHeader>
 
                 <form class="flex flex-col gap-4" @submit.prevent="submit">
@@ -406,7 +411,7 @@ function statusVariant(status: Product["status"]) {
                                 <SelectValue placeholder="Unassigned" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="">Unassigned</SelectItem>
+                                <SelectItem value="none">Unassigned</SelectItem>
                                 <SelectItem
                                     v-for="bin in binOptionsForSelectedWarehouse"
                                     :key="bin.id"
@@ -492,12 +497,22 @@ function statusVariant(status: Product["status"]) {
                     </div>
 
                     <DialogFooter>
-                        <Button type="submit" :disabled="form.processing">
-                            {{
-                                editingProduct
-                                    ? "Save Changes"
-                                    : "Create Product"
-                            }}
+                        <Button
+                            type="submit"
+                            class="w-full"
+                            :disabled="form.processing"
+                        >
+                            <LoaderIcon
+                                v-if="form.processing"
+                                class="animate-spin"
+                            />
+                            <template v-else>
+                                {{
+                                    editingProduct
+                                        ? "Save Changes"
+                                        : "Create Product"
+                                }}
+                            </template>
                         </Button>
                     </DialogFooter>
                 </form>

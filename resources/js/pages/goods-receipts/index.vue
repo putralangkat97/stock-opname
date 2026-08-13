@@ -18,6 +18,7 @@ import {
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogHeader,
     DialogTitle,
     DialogFooter,
@@ -36,6 +37,7 @@ import type {
     Supplier,
     Warehouse,
 } from "@/types/models";
+import { LoaderIcon } from "@lucide/vue";
 
 interface SimpleProduct {
     id: number;
@@ -183,6 +185,7 @@ function submit() {
             <DialogContent class="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
                 <DialogHeader>
                     <DialogTitle>New Goods Receipt</DialogTitle>
+                    <DialogDescription>Form goods receipt</DialogDescription>
                 </DialogHeader>
 
                 <form class="flex flex-col gap-4" @submit.prevent="submit">
@@ -327,8 +330,16 @@ function submit() {
                     </Field>
 
                     <DialogFooter>
-                        <Button type="submit" :disabled="form.processing">
-                            Create as Draft
+                        <Button
+                            type="submit"
+                            class="w-full"
+                            :disabled="form.processing"
+                        >
+                            <LoaderIcon
+                                v-if="form.processing"
+                                class="animate-spin"
+                            />
+                            <template v-else> Create as Draft </template>
                         </Button>
                     </DialogFooter>
                 </form>

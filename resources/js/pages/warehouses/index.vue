@@ -17,6 +17,7 @@ import {
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogHeader,
     DialogTitle,
     DialogFooter,
@@ -33,6 +34,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import type { PaginatedData, Warehouse } from "@/types/models";
+import { LoaderIcon } from "@lucide/vue";
 
 defineProps<{
     warehouses: PaginatedData<Warehouse>;
@@ -200,6 +202,7 @@ function confirmDelete() {
                                 : "Add Warehouse"
                         }}
                     </DialogTitle>
+                    <DialogDescription>Form warehouse</DialogDescription>
                 </DialogHeader>
 
                 <form class="flex flex-col gap-4" @submit.prevent="submit">
@@ -243,12 +246,22 @@ function confirmDelete() {
                     </div>
 
                     <DialogFooter>
-                        <Button type="submit" :disabled="form.processing">
-                            {{
-                                editingWarehouse
-                                    ? "Save Changes"
-                                    : "Create Warehouse"
-                            }}
+                        <Button
+                            type="submit"
+                            class="w-full"
+                            :disabled="form.processing"
+                        >
+                            <LoaderIcon
+                                v-if="form.processing"
+                                class="animate-spin"
+                            />
+                            <template v-else>
+                                {{
+                                    editingWarehouse
+                                        ? "Save Changes"
+                                        : "Create Warehouse"
+                                }}
+                            </template>
                         </Button>
                     </DialogFooter>
                 </form>

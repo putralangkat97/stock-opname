@@ -17,6 +17,7 @@ import {
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogHeader,
     DialogTitle,
     DialogFooter,
@@ -33,6 +34,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import type { PaginatedData, Customer } from "@/types/models";
+import { LoaderIcon } from "@lucide/vue";
 
 defineProps<{
     customers: PaginatedData<Customer>;
@@ -128,14 +130,25 @@ function confirmDelete() {
                     <TableEmpty v-if="customers.data.length === 0" :colspan="6">
                         No customers yet.
                     </TableEmpty>
-                    <TableRow v-for="customer in customers.data" :key="customer.id">
-                        <TableCell class="font-mono text-sm">{{ customer.code }}</TableCell>
+                    <TableRow
+                        v-for="customer in customers.data"
+                        :key="customer.id"
+                    >
+                        <TableCell class="font-mono text-sm">{{
+                            customer.code
+                        }}</TableCell>
                         <TableCell>{{ customer.name }}</TableCell>
-                        <TableCell>{{ customer.contact_person ?? "—" }}</TableCell>
+                        <TableCell>{{
+                            customer.contact_person ?? "—"
+                        }}</TableCell>
                         <TableCell>{{ customer.phone ?? "—" }}</TableCell>
                         <TableCell>{{ customer.city ?? "—" }}</TableCell>
                         <TableCell class="flex justify-end gap-2 text-right">
-                            <Button variant="outline" size="sm" @click="openEditDialog(customer)">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                @click="openEditDialog(customer)"
+                            >
                                 Edit
                             </Button>
                             <Button
@@ -150,8 +163,13 @@ function confirmDelete() {
                 </TableBody>
             </Table>
 
-            <div class="flex items-center justify-between text-sm text-muted-foreground">
-                <span>Page {{ customers.current_page }} of {{ customers.last_page }}</span>
+            <div
+                class="flex items-center justify-between text-sm text-muted-foreground"
+            >
+                <span
+                    >Page {{ customers.current_page }} of
+                    {{ customers.last_page }}</span
+                >
                 <div class="flex gap-2">
                     <Button
                         v-for="link in customers.links"
@@ -161,7 +179,10 @@ function confirmDelete() {
                         :disabled="!link.url"
                         :class="{ 'bg-muted': link.active }"
                         v-html="link.label"
-                        @click="link.url && router.get(link.url, {}, { preserveState: true })"
+                        @click="
+                            link.url &&
+                            router.get(link.url, {}, { preserveState: true })
+                        "
                     />
                 </div>
             </div>
@@ -170,7 +191,10 @@ function confirmDelete() {
         <Dialog v-model:open="dialogOpen">
             <DialogContent class="sm:max-w-lg">
                 <DialogHeader>
-                    <DialogTitle>{{ editingCustomer ? "Edit Customer" : "Add Customer" }}</DialogTitle>
+                    <DialogTitle>
+                        {{ editingCustomer ? "Edit Customer" : "Add Customer" }}
+                    </DialogTitle>
+                    <DialogDescription>Form customer</DialogDescription>
                 </DialogHeader>
 
                 <form class="flex flex-col gap-4" @submit.prevent="submit">
@@ -188,7 +212,9 @@ function confirmDelete() {
                         <Field>
                             <FieldLabel>Contact Person</FieldLabel>
                             <Input v-model="form.contact_person" />
-                            <FieldError :errors="[form.errors.contact_person]" />
+                            <FieldError
+                                :errors="[form.errors.contact_person]"
+                            />
                         </Field>
                         <Field>
                             <FieldLabel>Email</FieldLabel>
@@ -213,25 +239,47 @@ function confirmDelete() {
                     </Field>
 
                     <DialogFooter>
-                        <Button type="submit" :disabled="form.processing">
-                            {{ editingCustomer ? "Save Changes" : "Create Customer" }}
+                        <Button
+                            type="submit"
+                            class="w-full"
+                            :disabled="form.processing"
+                        >
+                            <LoaderIcon
+                                v-if="form.processing"
+                                class="animate-spin"
+                            />
+                            <template v-else>
+                                {{
+                                    editingCustomer
+                                        ? "Save Changes"
+                                        : "Create Customer"
+                                }}
+                            </template>
                         </Button>
                     </DialogFooter>
                 </form>
             </DialogContent>
         </Dialog>
 
-        <AlertDialog :open="!!deletingCustomer" @update:open="(v) => !v && (deletingCustomer = null)">
+        <AlertDialog
+            :open="!!deletingCustomer"
+            @update:open="(v) => !v && (deletingCustomer = null)"
+        >
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>Delete this customer?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        "{{ deletingCustomer?.name }}" will be removed. This can't be undone.
+                        "{{ deletingCustomer?.name }}" will be removed. This
+                        can't be undone.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel @click="deletingCustomer = null">Cancel</AlertDialogCancel>
-                    <AlertDialogAction @click="confirmDelete">Delete</AlertDialogAction>
+                    <AlertDialogCancel @click="deletingCustomer = null"
+                        >Cancel</AlertDialogCancel
+                    >
+                    <AlertDialogAction @click="confirmDelete"
+                        >Delete</AlertDialogAction
+                    >
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>

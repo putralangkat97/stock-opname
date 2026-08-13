@@ -75,7 +75,7 @@ function handleLogin() {
                             v-if="form.processing"
                             class="animate-spin"
                         />
-                        <span v-else>Login</span>
+                        <template v-else>Login</template>
                     </button>
                 </form>
                 <div></div>

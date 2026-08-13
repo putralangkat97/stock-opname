@@ -18,6 +18,7 @@ import {
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogHeader,
     DialogTitle,
     DialogFooter,
@@ -34,6 +35,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import type { PaginatedData, Category } from "@/types/models";
+import { LoaderIcon } from "@lucide/vue";
 
 defineProps<{
     categories: PaginatedData<Category>;
@@ -116,17 +118,31 @@ function confirmDelete() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    <TableEmpty v-if="categories.data.length === 0" :colspan="4">
+                    <TableEmpty
+                        v-if="categories.data.length === 0"
+                        :colspan="4"
+                    >
                         No categories yet.
                     </TableEmpty>
-                    <TableRow v-for="category in categories.data" :key="category.id">
-                        <TableCell class="font-mono text-sm">{{ category.code }}</TableCell>
+                    <TableRow
+                        v-for="category in categories.data"
+                        :key="category.id"
+                    >
+                        <TableCell class="font-mono text-sm">{{
+                            category.code
+                        }}</TableCell>
                         <TableCell>{{ category.name }}</TableCell>
                         <TableCell>
-                            <Badge variant="secondary">{{ category.products_count ?? 0 }}</Badge>
+                            <Badge variant="secondary">{{
+                                category.products_count ?? 0
+                            }}</Badge>
                         </TableCell>
                         <TableCell class="flex justify-end gap-2 text-right">
-                            <Button variant="outline" size="sm" @click="openEditDialog(category)">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                @click="openEditDialog(category)"
+                            >
                                 Edit
                             </Button>
                             <Button
@@ -141,8 +157,13 @@ function confirmDelete() {
                 </TableBody>
             </Table>
 
-            <div class="flex items-center justify-between text-sm text-muted-foreground">
-                <span>Page {{ categories.current_page }} of {{ categories.last_page }}</span>
+            <div
+                class="flex items-center justify-between text-sm text-muted-foreground"
+            >
+                <span
+                    >Page {{ categories.current_page }} of
+                    {{ categories.last_page }}</span
+                >
                 <div class="flex gap-2">
                     <Button
                         v-for="link in categories.links"
@@ -152,7 +173,10 @@ function confirmDelete() {
                         :disabled="!link.url"
                         :class="{ 'bg-muted': link.active }"
                         v-html="link.label"
-                        @click="link.url && router.get(link.url, {}, { preserveState: true })"
+                        @click="
+                            link.url &&
+                            router.get(link.url, {}, { preserveState: true })
+                        "
                     />
                 </div>
             </div>
@@ -161,7 +185,10 @@ function confirmDelete() {
         <Dialog v-model:open="dialogOpen">
             <DialogContent class="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>{{ editingCategory ? "Edit Category" : "Add Category" }}</DialogTitle>
+                    <DialogTitle>{{
+                        editingCategory ? "Edit Category" : "Add Category"
+                    }}</DialogTitle>
+                    <DialogDescription>Form category</DialogDescription>
                 </DialogHeader>
 
                 <form class="flex flex-col gap-4" @submit.prevent="submit">
@@ -182,25 +209,47 @@ function confirmDelete() {
                     </Field>
 
                     <DialogFooter>
-                        <Button type="submit" :disabled="form.processing">
-                            {{ editingCategory ? "Save Changes" : "Create Category" }}
+                        <Button
+                            type="submit"
+                            class="w-full"
+                            :disabled="form.processing"
+                        >
+                            <LoaderIcon
+                                v-if="form.processing"
+                                class="animate-spin"
+                            />
+                            <template v-else>
+                                {{
+                                    editingCategory
+                                        ? "Save Changes"
+                                        : "Create Category"
+                                }}
+                            </template>
                         </Button>
                     </DialogFooter>
                 </form>
             </DialogContent>
         </Dialog>
 
-        <AlertDialog :open="!!deletingCategory" @update:open="(v) => !v && (deletingCategory = null)">
+        <AlertDialog
+            :open="!!deletingCategory"
+            @update:open="(v) => !v && (deletingCategory = null)"
+        >
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>Delete this category?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        "{{ deletingCategory?.name }}" will be removed. This can't be undone.
+                        "{{ deletingCategory?.name }}" will be removed. This
+                        can't be undone.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel @click="deletingCategory = null">Cancel</AlertDialogCancel>
-                    <AlertDialogAction @click="confirmDelete">Delete</AlertDialogAction>
+                    <AlertDialogCancel @click="deletingCategory = null"
+                        >Cancel</AlertDialogCancel
+                    >
+                    <AlertDialogAction @click="confirmDelete"
+                        >Delete</AlertDialogAction
+                    >
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>

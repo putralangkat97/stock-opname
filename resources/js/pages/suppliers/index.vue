@@ -17,6 +17,7 @@ import {
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogHeader,
     DialogTitle,
     DialogFooter,
@@ -33,6 +34,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import type { PaginatedData, Supplier } from "@/types/models";
+import { LoaderIcon } from "@lucide/vue";
 
 defineProps<{
     suppliers: PaginatedData<Supplier>;
@@ -128,14 +130,25 @@ function confirmDelete() {
                     <TableEmpty v-if="suppliers.data.length === 0" :colspan="6">
                         No suppliers yet.
                     </TableEmpty>
-                    <TableRow v-for="supplier in suppliers.data" :key="supplier.id">
-                        <TableCell class="font-mono text-sm">{{ supplier.code }}</TableCell>
+                    <TableRow
+                        v-for="supplier in suppliers.data"
+                        :key="supplier.id"
+                    >
+                        <TableCell class="font-mono text-sm">{{
+                            supplier.code
+                        }}</TableCell>
                         <TableCell>{{ supplier.name }}</TableCell>
-                        <TableCell>{{ supplier.contact_person ?? "—" }}</TableCell>
+                        <TableCell>{{
+                            supplier.contact_person ?? "—"
+                        }}</TableCell>
                         <TableCell>{{ supplier.phone ?? "—" }}</TableCell>
                         <TableCell>{{ supplier.city ?? "—" }}</TableCell>
                         <TableCell class="flex justify-end gap-2 text-right">
-                            <Button variant="outline" size="sm" @click="openEditDialog(supplier)">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                @click="openEditDialog(supplier)"
+                            >
                                 Edit
                             </Button>
                             <Button
@@ -150,8 +163,13 @@ function confirmDelete() {
                 </TableBody>
             </Table>
 
-            <div class="flex items-center justify-between text-sm text-muted-foreground">
-                <span>Page {{ suppliers.current_page }} of {{ suppliers.last_page }}</span>
+            <div
+                class="flex items-center justify-between text-sm text-muted-foreground"
+            >
+                <span
+                    >Page {{ suppliers.current_page }} of
+                    {{ suppliers.last_page }}</span
+                >
                 <div class="flex gap-2">
                     <Button
                         v-for="link in suppliers.links"
@@ -161,7 +179,10 @@ function confirmDelete() {
                         :disabled="!link.url"
                         :class="{ 'bg-muted': link.active }"
                         v-html="link.label"
-                        @click="link.url && router.get(link.url, {}, { preserveState: true })"
+                        @click="
+                            link.url &&
+                            router.get(link.url, {}, { preserveState: true })
+                        "
                     />
                 </div>
             </div>
@@ -170,7 +191,10 @@ function confirmDelete() {
         <Dialog v-model:open="dialogOpen">
             <DialogContent class="sm:max-w-lg">
                 <DialogHeader>
-                    <DialogTitle>{{ editingSupplier ? "Edit Supplier" : "Add Supplier" }}</DialogTitle>
+                    <DialogTitle>
+                        {{ editingSupplier ? "Edit Supplier" : "Add Supplier" }}
+                    </DialogTitle>
+                    <DialogDescription>Form supplier</DialogDescription>
                 </DialogHeader>
 
                 <form class="flex flex-col gap-4" @submit.prevent="submit">
@@ -188,7 +212,9 @@ function confirmDelete() {
                         <Field>
                             <FieldLabel>Contact Person</FieldLabel>
                             <Input v-model="form.contact_person" />
-                            <FieldError :errors="[form.errors.contact_person]" />
+                            <FieldError
+                                :errors="[form.errors.contact_person]"
+                            />
                         </Field>
                         <Field>
                             <FieldLabel>Email</FieldLabel>
@@ -213,25 +239,47 @@ function confirmDelete() {
                     </Field>
 
                     <DialogFooter>
-                        <Button type="submit" :disabled="form.processing">
-                            {{ editingSupplier ? "Save Changes" : "Create Supplier" }}
+                        <Button
+                            type="submit"
+                            class="w-full"
+                            :disabled="form.processing"
+                        >
+                            <LoaderIcon
+                                v-if="form.processing"
+                                class="animate-spin"
+                            />
+                            <template v-else>
+                                {{
+                                    editingSupplier
+                                        ? "Save Changes"
+                                        : "Create Supplier"
+                                }}
+                            </template>
                         </Button>
                     </DialogFooter>
                 </form>
             </DialogContent>
         </Dialog>
 
-        <AlertDialog :open="!!deletingSupplier" @update:open="(v) => !v && (deletingSupplier = null)">
+        <AlertDialog
+            :open="!!deletingSupplier"
+            @update:open="(v) => !v && (deletingSupplier = null)"
+        >
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>Delete this supplier?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        "{{ deletingSupplier?.name }}" will be removed. This can't be undone.
+                        "{{ deletingSupplier?.name }}" will be removed. This
+                        can't be undone.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel @click="deletingSupplier = null">Cancel</AlertDialogCancel>
-                    <AlertDialogAction @click="confirmDelete">Delete</AlertDialogAction>
+                    <AlertDialogCancel @click="deletingSupplier = null"
+                        >Cancel</AlertDialogCancel
+                    >
+                    <AlertDialogAction @click="confirmDelete"
+                        >Delete</AlertDialogAction
+                    >
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
