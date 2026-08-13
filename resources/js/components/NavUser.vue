@@ -1,12 +1,7 @@
 <script setup lang="ts">
-import {
-    BadgeCheck,
-    Bell,
-    ChevronsUpDown,
-    CreditCard,
-    LogOut,
-    Sparkles,
-} from "@lucide/vue";
+import { computed } from "vue";
+import { router } from "@inertiajs/vue3";
+import { ChevronsUpDown, LogOut } from "@lucide/vue";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -34,6 +29,22 @@ const props = defineProps<{
 }>();
 
 const { isMobile } = useSidebar();
+
+// Real initials from the logged-in user's name — was hardcoded to "CN"
+// (a shadcn/ui template leftover) before.
+const initials = computed(
+    () =>
+        props.user.name
+            .split(" ")
+            .map((part) => part.charAt(0))
+            .slice(0, 2)
+            .join("")
+            .toUpperCase() || "?",
+);
+
+function logout() {
+    router.post("/logout");
+}
 </script>
 
 <template>
@@ -48,7 +59,7 @@ const { isMobile } = useSidebar();
                         <Avatar class="h-8 w-8 rounded-lg">
                             <AvatarImage :src="user.avatar" :alt="user.name" />
                             <AvatarFallback class="rounded-lg">
-                                CN
+                                {{ initials }}
                             </AvatarFallback>
                         </Avatar>
                         <div
@@ -80,7 +91,7 @@ const { isMobile } = useSidebar();
                                     :alt="user.name"
                                 />
                                 <AvatarFallback class="rounded-lg">
-                                    CN
+                                    {{ initials }}
                                 </AvatarFallback>
                             </Avatar>
                             <div
@@ -97,31 +108,11 @@ const { isMobile } = useSidebar();
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuGroup>
-                        <DropdownMenuItem>
-                            <Sparkles />
-                            Upgrade to Pro
+                        <DropdownMenuItem @click="logout">
+                            <LogOut />
+                            Log out
                         </DropdownMenuItem>
                     </DropdownMenuGroup>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuGroup>
-                        <DropdownMenuItem>
-                            <BadgeCheck />
-                            Account
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                            <CreditCard />
-                            Billing
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                            <Bell />
-                            Notifications
-                        </DropdownMenuItem>
-                    </DropdownMenuGroup>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem>
-                        <LogOut />
-                        Log out
-                    </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
         </SidebarMenuItem>

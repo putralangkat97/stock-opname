@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { LucideIcon } from "@lucide/vue";
 import { ChevronRight } from "@lucide/vue";
+import { Link, usePage } from "@inertiajs/vue3";
 import {
     Collapsible,
     CollapsibleContent,
@@ -31,6 +32,15 @@ defineProps<{
         }[];
     }[];
 }>();
+
+const page = usePage();
+
+// Sub-items always carry a real route (e.g. "/products"); highlight one as
+// active if the current path starts with it, so nested show/edit routes
+// like "/products/5" still light up "Produk" in the nav.
+function isSubItemActive(url: string): boolean {
+    return url !== "#" && page.url.startsWith(url);
+}
 </script>
 
 <template>
@@ -44,12 +54,24 @@ defineProps<{
                 :default-open="true"
             >
                 <SidebarMenuItem>
-                    <SidebarMenuButton as-child :tooltip="item.title">
-                        <a :href="item.url">
+                    <!-- Top-level items here are always group headers (url="#"),
+                         not real pages — render as a non-navigating button so
+                         clicking never tries to visit "#" through Inertia. -->
+                    <SidebarMenuButton
+                        v-if="!item.items?.length"
+                        as-child
+                        :tooltip="item.title"
+                    >
+                        <Link :href="item.url">
                             <component :is="item.icon" />
                             <span>{{ item.title }}</span>
-                        </a>
+                        </Link>
                     </SidebarMenuButton>
+                    <SidebarMenuButton v-else :tooltip="item.title">
+                        <component :is="item.icon" />
+                        <span>{{ item.title }}</span>
+                    </SidebarMenuButton>
+
                     <template v-if="item.items?.length">
                         <CollapsibleTrigger as-child>
                             <SidebarMenuAction
@@ -65,11 +87,16 @@ defineProps<{
                                     v-for="subItem in item.items"
                                     :key="subItem.title"
                                 >
-                                    <SidebarMenuSubButton as-child>
-                                        <a :href="subItem.url">
+                                    <SidebarMenuSubButton
+                                        as-child
+                                        :is-active="
+                                            isSubItemActive(subItem.url)
+                                        "
+                                    >
+                                        <Link :href="subItem.url">
                                             <component :is="subItem.icon" />
                                             <span>{{ subItem.title }}</span>
-                                        </a>
+                                        </Link>
                                     </SidebarMenuSubButton>
                                 </SidebarMenuSubItem>
                             </SidebarMenuSub>
