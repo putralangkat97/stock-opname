@@ -23,6 +23,17 @@ declare module "@inertiajs/core" {
                 error: string;
             };
             sidebarOpen: boolean;
+            notifications: {
+                unreadCount: number;
+                recent: {
+                    id: string;
+                    title: string;
+                    message: string;
+                    link: string | null;
+                    read: boolean;
+                    created_at: string;
+                }[];
+            } | null;
             [key: string]: unknown;
         };
     }

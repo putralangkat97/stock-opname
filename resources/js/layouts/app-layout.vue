@@ -5,6 +5,7 @@ export const iframeHeight = "800px";
 
 <script setup lang="ts">
 import AppSidebar from "@/components/AppSidebar.vue";
+import NotificationBell from "@/components/NotificationBell.vue";
 import { Separator } from "@/components/ui/separator";
 import {
     SidebarInset,
@@ -32,6 +33,9 @@ defineProps<{
                     />
                 </div>
                 <Breadcrumb :breadcrumbs="breadcrumbs" />
+                <div class="ml-auto flex items-center gap-2 px-4">
+                    <NotificationBell />
+                </div>
             </header>
             <div class="flex flex-1 flex-col gap-4 p-4 pt-0">
                 <slot />

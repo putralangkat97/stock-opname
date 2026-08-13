@@ -44,6 +44,25 @@ class HandleInertiaRequests extends Middleware
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
             ],
+            'notifications' => fn () => $request->user() ? [
+                'unreadCount' => $request->user()->unreadNotifications()->count(),
+                // Recent 10 only, unread first — the bell dropdown is a
+                // quick-glance list, not a full notification center. A
+                // dedicated "view all" page can query the full history
+                // directly if that's ever needed.
+                'recent' => $request->user()->notifications()
+                    ->latest()
+                    ->limit(10)
+                    ->get()
+                    ->map(fn ($n) => [
+                        'id' => $n->id,
+                        'title' => $n->data['title'] ?? '',
+                        'message' => $n->data['message'] ?? '',
+                        'link' => $n->data['link'] ?? null,
+                        'read' => $n->read_at !== null,
+                        'created_at' => $n->created_at->diffForHumans(),
+                    ]),
+            ] : null,
         ];
     }
 }

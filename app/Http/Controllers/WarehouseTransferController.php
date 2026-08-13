@@ -5,11 +5,14 @@ namespace App\Http\Controllers;
 use App\Enums\WarehouseTransferStatus;
 use App\Http\Requests\StoreWarehouseTransferRequest;
 use App\Models\Product;
+use App\Models\User;
 use App\Models\Warehouse;
 use App\Models\WarehouseTransfer;
+use App\Notifications\TransferInTransitNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -99,6 +102,21 @@ class WarehouseTransferController extends Controller
             $warehouseTransfer->markInTransit();
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
+        }
+
+        $recipients = User::query()
+            ->role('Super Admin')
+            ->get()
+            ->merge(
+                User::query()
+                    ->whereHas('warehouses', fn ($q) => $q->whereKey($warehouseTransfer->to_warehouse_id))
+                    ->role('Warehouse Admin')
+                    ->get()
+            )
+            ->unique('id');
+
+        if ($recipients->isNotEmpty()) {
+            Notification::send($recipients, new TransferInTransitNotification($warehouseTransfer));
         }
 
         return back()->with('success', 'Transfer marked In Transit — stock deducted from source.');

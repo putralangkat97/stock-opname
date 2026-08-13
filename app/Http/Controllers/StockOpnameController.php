@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Concerns\NotifiesApprovers;
 use App\Enums\StockOpnameStatus;
 use App\Http\Requests\StoreStockOpnameRequest;
 use App\Models\Product;
@@ -17,6 +18,8 @@ use Inertia\Response;
 
 class StockOpnameController extends Controller
 {
+    use NotifiesApprovers;
+
     public function index(): Response
     {
         $this->authorize('viewAny', StockOpname::class);
@@ -121,6 +124,8 @@ class StockOpnameController extends Controller
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
         }
+
+        $this->notifyApprovers('Stock Opname', $stockOpname->opname_number, "/stock-opnames/{$stockOpname->id}");
 
         return back()->with('success', 'Stock opname completed — ready for approval.');
     }

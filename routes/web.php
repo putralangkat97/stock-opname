@@ -7,6 +7,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\GoodsIssueController;
 use App\Http\Controllers\GoodsReceiptController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\RackController;
 use App\Http\Controllers\StockAdjustmentController;
@@ -85,6 +86,12 @@ Route::middleware(['auth'])->group(function () {
     // route — this model only ever needs the one custom action, never plain CRUD.
     Route::post('stock-opname-items/{stock_opname_item}/record-count', [StockOpnameItemController::class, 'recordCount'])
         ->name('stock-opname-items.record-count');
+
+    // Notification
+    Route::post('notifications/{notification}/read', [NotificationController::class, 'markAsRead'])
+        ->name('notifications.read');
+    Route::post('notifications/read-all', [NotificationController::class, 'markAllAsRead'])
+        ->name('notifications.read-all');
 
     // Audit Log
     Route::get('audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');

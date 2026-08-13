@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Concerns\NotifiesApprovers;
 use App\Enums\GoodsIssueStatus;
 use App\Http\Requests\StoreGoodsIssueRequest;
 use App\Http\Requests\UpdateGoodsIssueRequest;
@@ -18,6 +19,8 @@ use Inertia\Response;
 
 class GoodsIssueController extends Controller
 {
+    use NotifiesApprovers;
+
     public function index(): Response
     {
         $this->authorize('viewAny', GoodsIssue::class);
@@ -77,6 +80,8 @@ class GoodsIssueController extends Controller
 
             return $goodsIssue;
         });
+
+        $this->notifyApprovers('Goods Issue', $goodsIssue->issue_number, "/goods-issues/{$goodsIssue->id}");
 
         return redirect()
             ->route('goods-issues.show', $goodsIssue)

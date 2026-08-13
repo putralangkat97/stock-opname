@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Concerns\NotifiesApprovers;
 use App\Enums\GoodsReceiptStatus;
 use App\Http\Requests\StoreGoodsReceiptRequest;
 use App\Http\Requests\UpdateGoodsReceiptRequest;
@@ -18,6 +19,8 @@ use Inertia\Response;
 
 class GoodsReceiptController extends Controller
 {
+    use NotifiesApprovers;
+
     public function index(): Response
     {
         $this->authorize('viewAny', GoodsReceipt::class);
@@ -76,6 +79,8 @@ class GoodsReceiptController extends Controller
 
             return $goodsReceipt;
         });
+
+        $this->notifyApprovers('Goods Receipt', $goodsReceipt->receipt_number, "/goods-receipts/{$goodsReceipt->id}");
 
         return redirect()
             ->route('goods-receipts.show', $goodsReceipt)

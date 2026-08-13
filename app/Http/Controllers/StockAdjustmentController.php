@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Concerns\NotifiesApprovers;
 use App\Enums\StockAdjustmentStatus;
 use App\Http\Requests\StoreStockAdjustmentRequest;
 use App\Models\Product;
@@ -16,6 +17,8 @@ use Inertia\Response;
 
 class StockAdjustmentController extends Controller
 {
+    use NotifiesApprovers;
+
     public function index(): Response
     {
         $this->authorize('viewAny', StockAdjustment::class);
@@ -78,6 +81,8 @@ class StockAdjustmentController extends Controller
 
             return $stockAdjustment;
         });
+
+        $this->notifyApprovers('Stock Adjustment', $stockAdjustment->adjustment_number, "/stock-adjustments/{$stockAdjustment->id}");
 
         return redirect()
             ->route('stock-adjustments.show', $stockAdjustment)
