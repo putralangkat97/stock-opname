@@ -13,13 +13,12 @@ class ApprovalNeededNotification extends Notification implements ShouldQueue
     /**
      * Create a new notification instance.
      */
-     public function __construct(
+    public function __construct(
         protected string $documentLabel,
         protected string $documentNumber,
         protected string $link,
         protected string $createdByName,
-    ) {
-    }
+    ) {}
 
     /**
      * Get the notification's delivery channels.

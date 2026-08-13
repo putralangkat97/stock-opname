@@ -184,7 +184,7 @@ export interface StockAdjustment {
     status: StockAdjustmentStatusValue;
     notes: string | null;
     warehouse: Warehouse;
-    adjustedBy: { id: number; name: string };
+    adjusted_by: { id: number; name: string };
     items?: StockAdjustmentItem[];
 }
 
@@ -246,8 +246,8 @@ export interface StockOpname {
     notes: string | null;
     approved_at: string | null;
     warehouse: Warehouse;
-    assignedTo: { id: number; name: string };
-    approvedBy: { id: number; name: string } | null;
+    assigned_to: { id: number; name: string };
+    approved_by: { id: number; name: string } | null;
     items?: StockOpnameItem[];
 }
 

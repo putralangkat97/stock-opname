@@ -199,9 +199,9 @@ const viewingDetails = ref<AuditLog | null>(null);
                 </DialogHeader>
                 <pre
                     class="max-h-96 overflow-auto rounded-md bg-muted p-4 text-xs"
-                >
-                    {{ JSON.stringify(viewingDetails?.details, null, 2) }}
-                </pre>
+                    >{{
+                        JSON.stringify(viewingDetails?.details, null, 2)
+                    }}</pre>
             </DialogContent>
         </Dialog>
     </AppLayout>

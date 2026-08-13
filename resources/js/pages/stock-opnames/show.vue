@@ -220,7 +220,7 @@ function reject() {
                 >
                     <div>
                         <p class="text-muted-foreground">Assigned To</p>
-                        <p>{{ stockOpname.assignedTo.name }}</p>
+                        <p>{{ stockOpname.assigned_to.name }}</p>
                     </div>
                     <div>
                         <p class="text-muted-foreground">Start Date</p>
@@ -232,7 +232,7 @@ function reject() {
                     </div>
                     <div>
                         <p class="text-muted-foreground">Approved By</p>
-                        <p>{{ stockOpname.approvedBy?.name ?? "—" }}</p>
+                        <p>{{ stockOpname.approved_by?.name ?? "—" }}</p>
                     </div>
                     <div v-if="stockOpname.notes" class="col-span-full">
                         <p class="text-muted-foreground">Notes</p>

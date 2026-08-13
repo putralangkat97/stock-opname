@@ -19,6 +19,7 @@ import {
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogHeader,
     DialogTitle,
     DialogFooter,
@@ -36,6 +37,7 @@ import type {
     StockOpnameStatusValue,
     Warehouse,
 } from "@/types/models";
+import { LoaderIcon } from "@lucide/vue";
 
 interface SimpleProduct {
     id: number;
@@ -168,7 +170,7 @@ function submit() {
                         </TableCell>
                         <TableCell>{{ opname.title }}</TableCell>
                         <TableCell>{{ opname.warehouse.name }}</TableCell>
-                        <TableCell>{{ opname.assignedTo.name }}</TableCell>
+                        <TableCell>{{ opname.assigned_to.name }}</TableCell>
                         <TableCell>{{ opname.start_date }}</TableCell>
                         <TableCell>
                             <Badge :variant="statusVariant(opname.status)">
@@ -192,6 +194,7 @@ function submit() {
             <DialogContent class="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
                 <DialogHeader>
                     <DialogTitle>New Stock Opname</DialogTitle>
+                    <DialogDescription>Form stock opname</DialogDescription>
                 </DialogHeader>
 
                 <form class="flex flex-col gap-4" @submit.prevent="submit">
@@ -318,11 +321,16 @@ function submit() {
                     <DialogFooter>
                         <Button
                             type="submit"
+                            class="w-full"
                             :disabled="
                                 form.processing || form.product_ids.length === 0
                             "
                         >
-                            Create as Draft
+                            <LoaderIcon
+                                v-if="form.processing"
+                                class="animate-spin"
+                            />
+                            <template v-else> Create as Draft </template>
                         </Button>
                     </DialogFooter>
                 </form>

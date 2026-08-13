@@ -143,7 +143,7 @@ function reject() {
                     </div>
                     <div>
                         <p class="text-muted-foreground">Adjusted By</p>
-                        <p>{{ stockAdjustment.adjustedBy.name }}</p>
+                        <p>{{ stockAdjustment.adjusted_by.name }}</p>
                     </div>
                     <div v-if="stockAdjustment.notes" class="col-span-full">
                         <p class="text-muted-foreground">Notes</p>
