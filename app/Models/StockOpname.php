@@ -77,48 +77,6 @@ class StockOpname extends Model
     }
 
     /**
-     * In Progress -> Completed. Requires every line to have been counted
-     * (physical_qty not null), then rolls up the header totals.
-     */
-    public function complete(): void
-    {
-        if ($this->status !== StockOpnameStatus::STATUS_IN_PROGRESS) {
-            throw new RuntimeException(
-                'Only an In Progress opname can be completed.',
-            );
-        }
-
-        if ($this->items()->whereNull('physical_qty')->exists()) {
-            throw new RuntimeException(
-                'All lines must be counted before completing the opname.',
-            );
-        }
-
-        DB::transaction(function () {
-            $items = $this->items()->with('product')->get();
-
-            $totalSystem = $items->sum('system_qty');
-            $totalPhysical = $items->sum('physical_qty');
-            $totalVarianceQty = $totalPhysical - $totalSystem;
-            $totalVarianceValue = $items->sum(
-                fn (StockOpnameItem $item) => ($item->physical_qty -
-                    $item->system_qty) *
-                    $item->product->cost_price,
-            );
-
-            $this->update([
-                'status' => StockOpnameStatus::STATUS_COMPLETED,
-                'completed_date' => now()->toDateString(),
-                'total_system_qty' => $totalSystem,
-                'total_physical_qty' => $totalPhysical,
-                'total_variance_qty' => $totalVarianceQty,
-                'total_variance_value' => $totalVarianceValue,
-            ]);
-            $this->logAudit('completed', ['variance_qty' => $totalVarianceQty]);
-        });
-    }
-
-    /**
      * Completed -> Approved. This is where stock actually changes for an
      * opname — never before. Every line with a nonzero variance gets a real
      * Stock Adjustment created AND approved (reusing StockAdjustment::approve()
