@@ -119,6 +119,11 @@ class StockOpname extends Model
         return $this->state()->canStart($this);
     }
 
+    public function canRecordCount(): bool
+    {
+        return $this->state()->canRecordCount($this);
+    }
+
     public function canComplete(): bool
     {
         return $this->state()->canComplete($this);

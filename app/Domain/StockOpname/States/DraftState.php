@@ -11,6 +11,11 @@ final class DraftState implements StockOpnameState
         return true;
     }
 
+    public function canRecordCount(StockOpname $stockOpname): bool
+    {
+        return false;
+    }
+
     public function canComplete(StockOpname $stockOpname): bool
     {
         return false;

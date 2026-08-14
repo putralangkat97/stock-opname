@@ -11,6 +11,11 @@ final class CompletedState implements StockOpnameState
         return false;
     }
 
+    public function canRecordCount(StockOpname $stockOpname): bool
+    {
+        return true;
+    }
+
     public function canComplete(StockOpname $stockOpname): bool
     {
         return false;

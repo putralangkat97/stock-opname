@@ -2,7 +2,6 @@
 
 namespace App\Policies;
 
-use App\Enums\StockOpnameStatus;
 use App\Models\StockOpname;
 use App\Models\User;
 
@@ -26,10 +25,13 @@ class StockOpnamePolicy
 
     public function start(User $user, StockOpname $opname): bool
     {
-        return $opname->status === StockOpnameStatus::STATUS_DRAFT
+        return $opname->canStart()
             && (
                 $user->hasRole('Super Admin')
-                || ($user->hasRole('Warehouse Admin') && $user->hasAccessToWarehouse($opname->warehouse))
+                || (
+                    $user->hasRole('Warehouse Admin')
+                    && $user->hasAccessToWarehouse($opname->warehouse)
+                )
             );
     }
 
@@ -40,21 +42,30 @@ class StockOpnamePolicy
      */
     public function recordCount(User $user, StockOpname $opname): bool
     {
-        if ($opname->status !== StockOpnameStatus::STATUS_IN_PROGRESS) {
+        if (! $opname->canRecordCount()) {
             return false;
         }
 
         return $user->hasRole('Super Admin')
-            || ($user->hasRole('Warehouse Admin') && $user->hasAccessToWarehouse($opname->warehouse))
-            || ($user->hasRole('Supervisor') && $opname->assigned_to === $user->id);
+            || (
+                $user->hasRole('Warehouse Admin')
+                && $user->hasAccessToWarehouse($opname->warehouse)
+            )
+            || (
+                $user->hasRole('Supervisor')
+                && $opname->assigned_to === $user->id
+            );
     }
 
     public function complete(User $user, StockOpname $opname): bool
     {
-        return $opname->status === StockOpnameStatus::STATUS_IN_PROGRESS
+        return $opname->canComplete()
             && (
                 $user->hasRole('Super Admin')
-                || ($user->hasRole('Warehouse Admin') && $user->hasAccessToWarehouse($opname->warehouse))
+                || (
+                    $user->hasRole('Warehouse Admin')
+                    && $user->hasAccessToWarehouse($opname->warehouse)
+                )
             );
     }
 
@@ -65,13 +76,13 @@ class StockOpnamePolicy
      */
     public function approve(User $user, StockOpname $opname): bool
     {
-        return $opname->status === StockOpnameStatus::STATUS_COMPLETED
+        return $opname->canApprove()
             && $user->hasRole('Super Admin');
     }
 
     public function reject(User $user, StockOpname $opname): bool
     {
-        return $opname->status === StockOpnameStatus::STATUS_COMPLETED
+        return $opname->canReject()
             && $user->hasRole('Super Admin');
     }
 }
