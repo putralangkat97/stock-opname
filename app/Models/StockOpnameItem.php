@@ -30,19 +30,16 @@ class StockOpnameItem extends Model
         'status' => StockOpnameItemStatus::class,
     ];
 
-    /** @return BelongsTo */
     public function stockOpname(): BelongsTo
     {
         return $this->belongsTo(StockOpname::class);
     }
 
-    /** @return BelongsTo */
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
     }
 
-    /** @return BelongsTo */
     public function scannedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'scanned_by');
@@ -51,11 +48,6 @@ class StockOpnameItem extends Model
     /**
      * Record a physical count for this line — the only way physical_qty
      * should ever be set (keeps status/scanned_at/scanned_by consistent).
-     *
-     * @param int $physicalQty
-     * @param User $scannedBy
-     *
-     * @return void
      */
     public function recordCount(int $physicalQty, User $scannedBy): void
     {

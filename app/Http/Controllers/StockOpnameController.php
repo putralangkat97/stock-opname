@@ -2,8 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\StockOpname\ApproveStockOpname;
+use App\Actions\StockOpname\CompleteStockOpname;
+use App\Actions\StockOpname\CreateStockOpname;
+use App\Actions\StockOpname\RejectStockOpname;
+use App\Actions\StockOpname\StartStockOpname;
 use App\Concerns\NotifiesApprovers;
-use App\Enums\StockOpnameStatus;
 use App\Http\Requests\StoreStockOpnameRequest;
 use App\Models\Product;
 use App\Models\StockOpname;
@@ -11,8 +15,6 @@ use App\Models\User;
 use App\Models\Warehouse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -24,6 +26,7 @@ class StockOpnameController extends Controller
     {
         $this->authorize('viewAny', StockOpname::class);
 
+        /** @var User $user */
         $user = Auth::user();
         $query = StockOpname::query()->with(['warehouse', 'assignedTo', 'approvedBy']);
 
@@ -70,86 +73,67 @@ class StockOpnameController extends Controller
         ]);
     }
 
-    public function store(StoreStockOpnameRequest $request): RedirectResponse
+    /**
+     * Store stock opname
+     */
+    public function store(StoreStockOpnameRequest $request, CreateStockOpname $action): RedirectResponse
     {
         $this->authorize('create', StockOpname::class);
 
-        $validated = $request->validated();
-
-        $stockOpname = DB::transaction(function () use ($validated) {
-            $stockOpname = StockOpname::query()->create([
-                'warehouse_id' => $validated['warehouse_id'],
-                'assigned_to' => $validated['assigned_to'],
-                'opname_number' => $this->generateOpnameNumber(),
-                'title' => $validated['title'],
-                'start_date' => $validated['start_date'],
-                'status' => StockOpnameStatus::STATUS_DRAFT,
-                'notes' => $validated['notes'] ?? null,
-            ]);
-
-            foreach ($validated['items'] as $item) {
-                $product = Product::query()->findOrFail($item['product_id']);
-
-                // Only product_id passed in — system_qty, product_sku_snapshot,
-                // and product_name_snapshot are all derived automatically by
-                // StockOpnameItem's saving() hook.
-                $stockOpname->items()->create([
-                    'product_id' => $product->id,
-                ]);
-            }
-
-            return $stockOpname;
-        });
+        $stockOpname = $action->execute($request->validated());
 
         return redirect()
             ->route('stock-opnames.show', $stockOpname)
             ->with('success', 'Stock opname created as Draft.');
     }
 
-    public function start(StockOpname $stockOpname): RedirectResponse
+    /**
+     * Start stock opname
+     */
+    public function start(StockOpname $stockOpname, StartStockOpname $action): RedirectResponse
     {
         $this->authorize('start', $stockOpname);
 
-        $stockOpname->start();
+        $action->execute($stockOpname);
 
         return back()->with('success', 'Stock opname started — ready for counting.');
     }
 
-    public function complete(StockOpname $stockOpname): RedirectResponse
+    /**
+     * Complete stock opname
+     */
+    public function complete(StockOpname $stockOpname, CompleteStockOpname $action): RedirectResponse
     {
         $this->authorize('complete', $stockOpname);
 
-        try {
-            $stockOpname->complete();
-        } catch (\RuntimeException $e) {
-            return back()->with('error', $e->getMessage());
-        }
+        $action->execute($stockOpname);
 
         $this->notifyApprovers('Stock Opname', $stockOpname->opname_number, "/stock-opnames/{$stockOpname->id}");
 
         return back()->with('success', 'Stock opname completed — ready for approval.');
     }
 
-    public function approve(StockOpname $stockOpname): RedirectResponse
+    /**
+     * Approve stock opname
+     */
+    public function approve(StockOpname $stockOpname, ApproveStockOpname $action): RedirectResponse
     {
         $this->authorize('approve', $stockOpname);
 
-        $stockOpname->approve(Auth::id());
+        $action->execute($stockOpname, Auth::id());
 
         return back()->with('success', 'Stock opname approved — stock adjustments applied.');
     }
 
-    public function reject(StockOpname $stockOpname): RedirectResponse
+    /**
+     * Reject stock opname
+     */
+    public function reject(StockOpname $stockOpname, RejectStockOpname $action): RedirectResponse
     {
         $this->authorize('reject', $stockOpname);
 
-        $stockOpname->reject();
+        $action->execute($stockOpname);
 
         return back()->with('success', 'Stock opname sent back for recount.');
-    }
-
-    private function generateOpnameNumber(): string
-    {
-        return 'OPN-'.now()->format('Ymd').'-'.Str::upper(Str::random(5));
     }
 }

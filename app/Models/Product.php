@@ -43,61 +43,51 @@ class Product extends Model
         'selling_price' => 'decimal:2',
     ];
 
-    /** @return BelongsTo */
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
     }
 
-    /** @return BelongsTo */
     public function brand(): BelongsTo
     {
         return $this->belongsTo(Brand::class);
     }
 
-    /** @return BelongsTo */
     public function unit(): BelongsTo
     {
         return $this->belongsTo(Unit::class);
     }
 
-    /** @return BelongsTo */
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class);
     }
 
-    /** @return BelongsTo */
     public function binLocation(): BelongsTo
     {
         return $this->belongsTo(BinLocation::class);
     }
 
-    /** @return HasMany */
     public function goodsReceiptItems(): HasMany
     {
         return $this->hasMany(GoodsReceiptItem::class);
     }
 
-    /** @return HasMany */
     public function goodsIssueItems(): HasMany
     {
         return $this->hasMany(GoodsIssueItem::class);
     }
 
-    /** @return HasMany */
     public function warehouseTransferItems(): HasMany
     {
         return $this->hasMany(WarehouseTransferItem::class);
     }
 
-    /** @return HasMany */
     public function stockAdjustmentItems(): HasMany
     {
         return $this->hasMany(StockAdjustmentItem::class);
     }
 
-    /** @return HasMany */
     public function stockOpnameItems(): HasMany
     {
         return $this->hasMany(StockOpnameItem::class);

@@ -18,13 +18,11 @@ class WarehouseTransferItem extends Model
 {
     use HasFactory;
 
-    /** @return BelongsTo */
     public function warehouseTransfer(): BelongsTo
     {
         return $this->belongsTo(WarehouseTransfer::class);
     }
 
-    /** @return BelongsTo */
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);

@@ -25,13 +25,11 @@ class GoodsIssueItem extends Model
         'subtotal' => 'decimal:2',
     ];
 
-    /** @return BelongsTo */
     public function goodsIssue(): BelongsTo
     {
         return $this->belongsTo(GoodsIssue::class);
     }
 
-    /** @return BelongsTo */
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);

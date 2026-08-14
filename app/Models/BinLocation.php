@@ -14,19 +14,16 @@ class BinLocation extends Model
 {
     use HasFactory, SoftDeletes;
 
-    /** @return BelongsTo */
     public function rack(): BelongsTo
     {
         return $this->belongsTo(Rack::class);
     }
 
-    /** @return BelongsTo */
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class);
     }
 
-    /** @return HasMany */
     public function products(): HasMany
     {
         return $this->hasMany(Product::class);

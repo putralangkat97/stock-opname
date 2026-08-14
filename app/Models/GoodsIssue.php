@@ -33,25 +33,21 @@ class GoodsIssue extends Model
         'status' => GoodsIssueStatus::class,
     ];
 
-    /** @return BelongsTo */
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
     }
 
-    /** @return BelongsTo */
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class);
     }
 
-    /** @return BelongsTo */
     public function issuedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'issued_by');
     }
 
-    /** @return HasMany */
     public function items(): HasMany
     {
         return $this->hasMany(GoodsIssueItem::class);

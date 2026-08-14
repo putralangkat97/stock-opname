@@ -21,7 +21,6 @@ class Customer extends Model
 {
     use HasFactory, SoftDeletes;
 
-    /** @return HasMany */
     public function goodsIssues(): HasMany
     {
         return $this->hasMany(GoodsIssue::class);

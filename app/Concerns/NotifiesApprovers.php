@@ -17,6 +17,7 @@ trait NotifiesApprovers
      */
     protected function notifyApprovers(string $documentLabel, string $documentNumber, string $link): void
     {
+        /** @var User $creator */
         $creator = Auth::user();
 
         if ($creator->hasRole('Super Admin')) {

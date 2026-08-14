@@ -21,7 +21,6 @@ class Warehouse extends Model
 {
     use HasFactory, SoftDeletes;
 
-    /** @return HasMany */
     public function racks(): HasMany
     {
         return $this->hasMany(Rack::class);
@@ -29,13 +28,11 @@ class Warehouse extends Model
 
     // Denormalized direct relation (see bin_locations migration note) — same rows
     // you'd get by going through racks, kept here for convenient eager loading.
-    /** @return HasMany */
     public function binLocations(): HasMany
     {
         return $this->hasMany(BinLocation::class);
     }
 
-    /** @return HasMany */
     public function products(): HasMany
     {
         return $this->hasMany(Product::class);
@@ -44,43 +41,36 @@ class Warehouse extends Model
     // Users with explicit access to this warehouse (Warehouse Admin / Supervisor scoping).
     // Super Admins bypass this check entirely in the Policy layer — they are not expected
     // to appear in this pivot for every warehouse.
-    /** @return BelongsToMany */
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'warehouse_user');
     }
 
-    /** @return HasMany */
     public function goodsReceipts(): HasMany
     {
         return $this->hasMany(GoodsReceipt::class);
     }
 
-    /** @return HasMany */
     public function goodsIssues(): HasMany
     {
         return $this->hasMany(GoodsIssue::class);
     }
 
-    /** @return HasMany */
     public function stockAdjustments(): HasMany
     {
         return $this->hasMany(StockAdjustment::class);
     }
 
-    /** @return HasMany */
     public function stockOpnames(): HasMany
     {
         return $this->hasMany(StockOpname::class);
     }
 
-    /** @return HasMany */
     public function transfersOut(): HasMany
     {
         return $this->hasMany(WarehouseTransfer::class, 'from_warehouse_id');
     }
 
-    /** @return HasMany */
     public function transfersIn(): HasMany
     {
         return $this->hasMany(WarehouseTransfer::class, 'to_warehouse_id');

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 
@@ -15,7 +16,10 @@ class NotificationController extends Controller
      */
     public function markAsRead(string $notificationId): RedirectResponse
     {
-        $notification = Auth::user()->notifications()->findOrFail($notificationId);
+        /** @var User $user */
+        $user = Auth::user();
+
+        $notification = $user->notifications()->findOrFail($notificationId);
         $notification->markAsRead();
 
         return back();
@@ -23,7 +27,10 @@ class NotificationController extends Controller
 
     public function markAllAsRead(): RedirectResponse
     {
-        Auth::user()->unreadNotifications()->update(['read_at' => now()]);
+        /** @var User $user */
+        $user = Auth::user();
+
+        $user->unreadNotifications()->update(['read_at' => now()]);
 
         return back();
     }

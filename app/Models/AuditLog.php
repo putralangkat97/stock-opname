@@ -25,13 +25,11 @@ class AuditLog extends Model
         'details' => 'array',
     ];
 
-    /** @return BelongsTo */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    /** @return MorphTo */
     public function auditable(): MorphTo
     {
         return $this->morphTo();
@@ -42,10 +40,7 @@ class AuditLog extends Model
      * Auditable trait (automatic CRUD events) or directly from a model method
      * for custom actions (approve, reject, start, complete, etc).
      *
-     * @param string $action
-     * @param Model $model
-     * @param array<string, mixed> $details
-     * @return self
+     * @param  array<string, mixed>  $details
      */
     public static function record(
         string $action,

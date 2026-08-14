@@ -25,13 +25,11 @@ class GoodsReceiptItem extends Model
         'subtotal' => 'decimal:2',
     ];
 
-    /** @return BelongsTo */
     public function goodsReceipt(): BelongsTo
     {
         return $this->belongsTo(GoodsReceipt::class);
     }
 
-    /** @return BelongsTo */
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);

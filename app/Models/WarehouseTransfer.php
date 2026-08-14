@@ -31,31 +31,26 @@ class WarehouseTransfer extends Model
         'status' => WarehouseTransferStatus::class,
     ];
 
-    /** @return BelongsTo */
     public function fromWarehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class, 'from_warehouse_id');
     }
 
-    /** @return BelongsTo */
     public function toWarehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class, 'to_warehouse_id');
     }
 
-    /** @return BelongsTo */
     public function transferredBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'transferred_by');
     }
 
-    /** @return BelongsTo */
     public function receivedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'received_by');
     }
 
-    /** @return HasMany */
     public function items(): HasMany
     {
         return $this->hasMany(WarehouseTransferItem::class);

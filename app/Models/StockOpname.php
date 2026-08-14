@@ -43,25 +43,21 @@ class StockOpname extends Model
         'status' => StockOpnameStatus::class,
     ];
 
-    /** @return BelongsTo */
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class);
     }
 
-    /** @return BelongsTo */
     public function assignedTo(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_to');
     }
 
-    /** @return BelongsTo */
     public function approvedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
     }
 
-    /** @return HasMany */
     public function items(): HasMany
     {
         return $this->hasMany(StockOpnameItem::class);

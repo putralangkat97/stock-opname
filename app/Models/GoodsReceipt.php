@@ -33,25 +33,21 @@ class GoodsReceipt extends Model
         'status' => GoodsReceiptStatus::class,
     ];
 
-    /** @return BelongsTo */
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class);
     }
 
-    /** @return BelongsTo */
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class);
     }
 
-    /** @return BelongsTo */
     public function receivedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'received_by');
     }
 
-    /** @return HasMany */
     public function items(): HasMany
     {
         return $this->hasMany(GoodsReceiptItem::class);

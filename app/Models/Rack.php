@@ -14,13 +14,11 @@ class Rack extends Model
 {
     use HasFactory, SoftDeletes;
 
-    /** @return BelongsTo */
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class);
     }
 
-    /** @return HasMany */
     public function binLocations(): HasMany
     {
         return $this->hasMany(BinLocation::class);

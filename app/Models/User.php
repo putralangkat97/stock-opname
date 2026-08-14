@@ -23,7 +23,6 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
-    /** @return BelongsToMany */
     public function warehouses(): BelongsToMany
     {
         return $this->belongsToMany(Warehouse::class, 'warehouse_user');
@@ -31,9 +30,6 @@ class User extends Authenticatable
 
     /** Convenience helper for Policies — use this instead of querying the pivot directly.
      *
-     * @param Warehouse $warehouse
-     *
-     * @return bool
      */
     public function hasAccessToWarehouse(Warehouse $warehouse): bool
     {
@@ -43,31 +39,26 @@ class User extends Authenticatable
 
     // --- The relationships below will resolve once we generate the transaction models ---
 
-    /** @return HasMany */
     public function goodsReceipts(): HasMany
     {
         return $this->hasMany(GoodsReceipt::class, 'received_by');
     }
 
-    /** @return HasMany */
     public function goodsIssues(): HasMany
     {
         return $this->hasMany(GoodsIssue::class, 'issued_by');
     }
 
-    /** @return HasMany */
     public function stockAdjustments(): HasMany
     {
         return $this->hasMany(StockAdjustment::class, 'adjusted_by');
     }
 
-    /** @return HasMany */
     public function assignedStockOpnames(): HasMany
     {
         return $this->hasMany(StockOpname::class, 'assigned_to');
     }
 
-    /** @return HasMany */
     public function auditLogs(): HasMany
     {
         return $this->hasMany(AuditLog::class);

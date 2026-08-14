@@ -18,13 +18,11 @@ class StockAdjustmentItem extends Model
 {
     use HasFactory;
 
-    /** @return BelongsTo */
     public function stockAdjustment(): BelongsTo
     {
         return $this->belongsTo(StockAdjustment::class);
     }
 
-    /** @return BelongsTo */
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);

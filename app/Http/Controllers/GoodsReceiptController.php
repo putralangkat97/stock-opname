@@ -9,6 +9,7 @@ use App\Http\Requests\UpdateGoodsReceiptRequest;
 use App\Models\GoodsReceipt;
 use App\Models\Product;
 use App\Models\Supplier;
+use App\Models\User;
 use App\Models\Warehouse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -25,6 +26,7 @@ class GoodsReceiptController extends Controller
     {
         $this->authorize('viewAny', GoodsReceipt::class);
 
+        /** @var User $user */
         $user = Auth::user();
         $query = GoodsReceipt::query()->with(['supplier', 'warehouse', 'receivedBy']);
 
