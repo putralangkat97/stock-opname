@@ -44,13 +44,5 @@ defineProps<{
         </SidebarInset>
     </SidebarProvider>
 
-    <!-- Teleported straight to <body> — SidebarProvider/SidebarInset apply a
-         CSS transform for the collapse/expand animation, which makes that
-         ancestor the containing block for any position:fixed descendant.
-         Without this Teleport, the Toaster gets visually clipped to the
-         sidebar's box instead of positioning against the real viewport,
-         which is exactly the "hidden behind the sidebar" symptom. -->
-    <Teleport to="body">
-        <Toaster position="top-right" rich-colors />
-    </Teleport>
+    <Toaster position="top-right" rich-colors />
 </template>
