@@ -6,6 +6,7 @@ use App\Concerns\Auditable;
 use App\Enums\StockAdjustmentReason;
 use App\Enums\StockAdjustmentStatus;
 use App\Enums\StockAdjustmentType;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,20 +14,19 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
+#[Fillable([
+    'warehouse_id',
+    'adjusted_by',
+    'adjustment_number',
+    'type',
+    'reason',
+    'date',
+    'status',
+    'notes',
+])]
 class StockAdjustment extends Model
 {
     use Auditable, HasFactory;
-
-    protected $fillable = [
-        'warehouse_id',
-        'adjusted_by',
-        'adjustment_number',
-        'type',
-        'reason',
-        'date',
-        'status',
-        'notes',
-    ];
 
     protected $casts = [
         'date' => 'date',
@@ -35,16 +35,19 @@ class StockAdjustment extends Model
         'reason' => StockAdjustmentReason::class,
     ];
 
+    /** @return BelongsTo */
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class);
     }
 
+    /** @return BelongsTo */
     public function adjustedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'adjusted_by');
     }
 
+    /** @return HasMany */
     public function items(): HasMany
     {
         return $this->hasMany(StockAdjustmentItem::class);

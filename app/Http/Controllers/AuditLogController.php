@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\Rack;
 use App\Models\StockAdjustment;
 use App\Models\StockOpname;
+use App\Models\User;
 use App\Models\Warehouse;
 use App\Models\WarehouseTransfer;
 use Illuminate\Http\Request;
@@ -39,6 +40,7 @@ class AuditLogController extends Controller
     {
         $this->authorize('viewAny', AuditLog::class);
 
+        /** @var User $user */
         $user = Auth::user();
         $query = AuditLog::query()->with('user')->latest();
 

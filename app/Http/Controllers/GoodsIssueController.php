@@ -9,6 +9,7 @@ use App\Http\Requests\UpdateGoodsIssueRequest;
 use App\Models\Customer;
 use App\Models\GoodsIssue;
 use App\Models\Product;
+use App\Models\User;
 use App\Models\Warehouse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -25,6 +26,7 @@ class GoodsIssueController extends Controller
     {
         $this->authorize('viewAny', GoodsIssue::class);
 
+        /** @var User $user */
         $user = Auth::user();
         $query = GoodsIssue::query()->with(['customer', 'warehouse', 'issuedBy']);
 

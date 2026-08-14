@@ -2,25 +2,26 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+#[Fillable([
+    'code',
+    'name',
+    'contact_person',
+    'email',
+    'phone',
+    'address',
+    'city',
+])]
 class Supplier extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = [
-        'code',
-        'name',
-        'contact_person',
-        'email',
-        'phone',
-        'address',
-        'city',
-    ];
-
+    /** @return HasMany */
     public function goodsReceipts(): HasMany
     {
         return $this->hasMany(GoodsReceipt::class);

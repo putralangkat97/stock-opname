@@ -2,23 +2,25 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+#[Fillable(['warehouse_id', 'code', 'zone'])]
 class Rack extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = ['warehouse_id', 'code', 'zone'];
-
+    /** @return BelongsTo */
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class);
     }
 
+    /** @return HasMany */
     public function binLocations(): HasMany
     {
         return $this->hasMany(BinLocation::class);

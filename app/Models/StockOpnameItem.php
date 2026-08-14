@@ -3,43 +3,46 @@
 namespace App\Models;
 
 use App\Enums\StockOpnameItemStatus;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+#[Fillable([
+    'stock_opname_id',
+    'product_id',
+    'scanned_by',
+    'product_sku_snapshot',
+    'product_name_snapshot',
+    'system_qty',
+    'physical_qty',
+    'scanned_at',
+    'notes',
+    'status',
+])]
 class StockOpnameItem extends Model
 {
     use HasFactory;
-
-    protected $fillable = [
-        'stock_opname_id',
-        'product_id',
-        'scanned_by',
-        'product_sku_snapshot',
-        'product_name_snapshot',
-        'system_qty',
-        'physical_qty',
-        'scanned_at',
-        'notes',
-        'status',
-    ];
 
     protected $casts = [
         'scanned_at' => 'datetime',
         'status' => StockOpnameItemStatus::class,
     ];
 
+    /** @return BelongsTo */
     public function stockOpname(): BelongsTo
     {
         return $this->belongsTo(StockOpname::class);
     }
 
+    /** @return BelongsTo */
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
     }
 
+    /** @return BelongsTo */
     public function scannedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'scanned_by');
@@ -48,6 +51,11 @@ class StockOpnameItem extends Model
     /**
      * Record a physical count for this line — the only way physical_qty
      * should ever be set (keeps status/scanned_at/scanned_by consistent).
+     *
+     * @param int $physicalQty
+     * @param User $scannedBy
+     *
+     * @return void
      */
     public function recordCount(int $physicalQty, User $scannedBy): void
     {
@@ -88,7 +96,7 @@ class StockOpnameItem extends Model
     {
         static::saving(function (StockOpnameItem $item) {
             if ($item->product_id && ! $item->exists) {
-                $product = $item->product ?? Product::find($item->product_id);
+                $product = $item->product ?? Product::query()->find($item->product_id);
                 $item->product_sku_snapshot = $product?->sku;
                 $item->product_name_snapshot = $product?->name;
 

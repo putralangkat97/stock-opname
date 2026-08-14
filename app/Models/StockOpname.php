@@ -6,6 +6,7 @@ use App\Concerns\Auditable;
 use App\Enums\StockAdjustmentStatus;
 use App\Enums\StockAdjustmentType;
 use App\Enums\StockOpnameStatus;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,26 +15,25 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use RuntimeException;
 
+#[Fillable([
+    'warehouse_id',
+    'assigned_to',
+    'approved_by',
+    'opname_number',
+    'title',
+    'start_date',
+    'completed_date',
+    'status',
+    'total_system_qty',
+    'total_physical_qty',
+    'total_variance_qty',
+    'total_variance_value',
+    'notes',
+    'approved_at',
+])]
 class StockOpname extends Model
 {
     use Auditable, HasFactory;
-
-    protected $fillable = [
-        'warehouse_id',
-        'assigned_to',
-        'approved_by',
-        'opname_number',
-        'title',
-        'start_date',
-        'completed_date',
-        'status',
-        'total_system_qty',
-        'total_physical_qty',
-        'total_variance_qty',
-        'total_variance_value',
-        'notes',
-        'approved_at',
-    ];
 
     protected $casts = [
         'start_date' => 'date',
@@ -43,21 +43,25 @@ class StockOpname extends Model
         'status' => StockOpnameStatus::class,
     ];
 
+    /** @return BelongsTo */
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class);
     }
 
+    /** @return BelongsTo */
     public function assignedTo(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_to');
     }
 
+    /** @return BelongsTo */
     public function approvedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
     }
 
+    /** @return HasMany */
     public function items(): HasMany
     {
         return $this->hasMany(StockOpnameItem::class);

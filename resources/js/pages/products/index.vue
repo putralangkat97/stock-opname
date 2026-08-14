@@ -62,7 +62,7 @@ const props = defineProps<{
     binLocations: BinLocation[];
 }>();
 
-console.log(props.warehouses);
+console.log(props.products);
 
 const breadcrumbs = [{ label: "Products", href: "/products" }];
 
