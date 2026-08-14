@@ -58,7 +58,7 @@ export interface Rack {
     warehouse_id: number;
     code: string;
     zone: string | null;
-    binLocations?: BinLocation[];
+    bin_locations?: BinLocation[];
 }
 
 // Shape returned by WarehouseController::show() — warehouse with racks eager
@@ -93,7 +93,7 @@ export interface Product {
     brand: Brand;
     unit: Unit;
     warehouse: Warehouse;
-    binLocation: BinLocation | null;
+    bin_location: BinLocation | null;
 }
 
 export interface GoodsReceiptItem {
@@ -228,7 +228,7 @@ export interface StockOpnameItem {
     scanned_at: string | null;
     notes: string | null;
     status: StockOpnameItemStatusValue;
-    scannedBy: { id: number; name: string } | null;
+    scanned_by: { id: number; name: string } | null;
     product?: Product;
 }
 
