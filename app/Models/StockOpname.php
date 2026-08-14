@@ -3,6 +3,11 @@
 namespace App\Models;
 
 use App\Concerns\Auditable;
+use App\Domain\StockOpname\States\ApprovedState;
+use App\Domain\StockOpname\States\CompletedState;
+use App\Domain\StockOpname\States\DraftState;
+use App\Domain\StockOpname\States\InProgressState;
+use App\Domain\StockOpname\States\StockOpnameState;
 use App\Enums\StockOpnameStatus;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -62,29 +67,70 @@ class StockOpname extends Model
     /**
      * Draft -> In Progress. No stock impact — this just opens the count for scanning.
      */
-    public function start(): void
-    {
-        if ($this->status !== StockOpnameStatus::STATUS_DRAFT) {
-            throw new RuntimeException('Only a Draft opname can be started.');
-        }
+     public function start(): void
+     {
+         if (! $this->canStart()) {
+             throw new RuntimeException(
+                 'Stock opname cannot be started in its current state.',
+             );
+         }
 
-        $this->update(['status' => StockOpnameStatus::STATUS_IN_PROGRESS]);
-        $this->logAudit('started');
-    }
+         $this->update([
+             'status' => StockOpnameStatus::STATUS_IN_PROGRESS,
+         ]);
+
+         $this->logAudit('started');
+     }
 
     /**
      * Completed -> back to In Progress for a recount. Nothing to reverse —
      * approve() never ran, so stock was never touched.
      */
-    public function reject(): void
-    {
-        if ($this->status !== StockOpnameStatus::STATUS_COMPLETED) {
-            throw new RuntimeException(
-                'Only a Completed opname can be rejected back for recount.',
-            );
-        }
+     public function reject(): void
+     {
+         if (! $this->canReject()) {
+             throw new RuntimeException(
+                 'Stock opname cannot be rejected in its current state.',
+             );
+         }
 
-        $this->update(['status' => StockOpnameStatus::STATUS_IN_PROGRESS]);
-        $this->logAudit('rejected_for_recount');
+         $this->update([
+             'status' => StockOpnameStatus::STATUS_IN_PROGRESS,
+         ]);
+
+         $this->logAudit('rejected_for_recount');
+     }
+
+    public function state(): StockOpnameState
+    {
+        return match ($this->status) {
+            StockOpnameStatus::STATUS_DRAFT => new DraftState,
+            StockOpnameStatus::STATUS_IN_PROGRESS => new InProgressState,
+            StockOpnameStatus::STATUS_COMPLETED => new CompletedState,
+            StockOpnameStatus::STATUS_APPROVED => new ApprovedState,
+            default => throw new RuntimeException(
+                "Unsupported stock opname status: {$this->status}",
+            ),
+        };
+    }
+
+    public function canStart(): bool
+    {
+        return $this->state()->canStart($this);
+    }
+
+    public function canComplete(): bool
+    {
+        return $this->state()->canComplete($this);
+    }
+
+    public function canApprove(): bool
+    {
+        return $this->state()->canApprove($this);
+    }
+
+    public function canReject(): bool
+    {
+        return $this->state()->canReject($this);
     }
 }

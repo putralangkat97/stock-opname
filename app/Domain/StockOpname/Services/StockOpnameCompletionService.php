@@ -12,9 +12,9 @@ final class StockOpnameCompletionService
 {
     public function complete(StockOpname $stockOpname): void
     {
-        if ($stockOpname->status !== StockOpnameStatus::STATUS_IN_PROGRESS) {
+        if (! $stockOpname->canComplete()) {
             throw new RuntimeException(
-                'Only an In Progress opname can be completed.',
+                'Stock opname cannot be completed in its current state.',
             );
         }
 

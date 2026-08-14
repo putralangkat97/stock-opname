@@ -14,13 +14,11 @@ use RuntimeException;
 
 final class StockOpnameApprovalService
 {
-    public function approve(
-        StockOpname $stockOpname,
-        int $approverId,
-    ): void {
-        if ($stockOpname->status !== StockOpnameStatus::STATUS_COMPLETED) {
+    public function approve(StockOpname $stockOpname, int $approverId): void
+    {
+        if (! $stockOpname->canApprove()) {
             throw new RuntimeException(
-                'Only a Completed opname can be approved.',
+                'Stock opname cannot be approved in its current state.',
             );
         }
 
