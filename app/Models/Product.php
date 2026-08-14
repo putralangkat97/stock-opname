@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Observers\ProductObserver;
+use Illuminate\Database\Eloquent\Attributes\Appends;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -32,6 +33,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'is_fast_moving',
     'image_url',
 ])]
+#[Appends(columns: ['status'])]
 class Product extends Model
 {
     use HasFactory, SoftDeletes;

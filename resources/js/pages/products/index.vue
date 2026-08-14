@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { router, useForm, usePage } from "@inertiajs/vue3";
+import { router, useForm, usePage, Link } from "@inertiajs/vue3";
 import { toast } from "vue-sonner";
 import AppLayout from "@/layouts/app-layout.vue";
 import { Button } from "@/components/ui/button";
@@ -61,8 +61,6 @@ const props = defineProps<{
     warehouses: Warehouse[];
     binLocations: BinLocation[];
 }>();
-
-console.log(props.products);
 
 const breadcrumbs = [{ label: "Products", href: "/products" }];
 
@@ -263,6 +261,11 @@ function statusVariant(status: Product["status"]) {
                             </Badge>
                         </TableCell>
                         <TableCell class="flex justify-end gap-2 text-right">
+                            <Link :href="`/products/${product.id}`">
+                                <Button variant="outline" size="sm">
+                                    View
+                                </Button>
+                            </Link>
                             <Button
                                 variant="outline"
                                 size="sm"
