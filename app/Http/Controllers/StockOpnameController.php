@@ -106,7 +106,11 @@ class StockOpnameController extends Controller
     {
         $this->authorize('complete', $stockOpname);
 
-        $action->execute($stockOpname);
+        try {
+            $action->execute($stockOpname);
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
 
         $this->notifyApprovers('Stock Opname', $stockOpname->opname_number, "/stock-opnames/{$stockOpname->id}");
 
@@ -120,7 +124,11 @@ class StockOpnameController extends Controller
     {
         $this->authorize('approve', $stockOpname);
 
-        $action->execute($stockOpname, Auth::id());
+        try {
+            $action->execute($stockOpname, Auth::id());
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
 
         return back()->with('success', 'Stock opname approved — stock adjustments applied.');
     }
