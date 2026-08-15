@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Concerns\Auditable;
+use App\Domain\StockMovement\Services\StockMovementService;
 use App\Enums\StockAdjustmentReason;
 use App\Enums\StockAdjustmentStatus;
 use App\Enums\StockAdjustmentType;
@@ -63,23 +64,17 @@ class StockAdjustment extends Model
             );
         }
 
-        DB::transaction(function () {
+        $stockMovement = app(StockMovementService::class);
+
+        DB::transaction(function () use ($stockMovement) {
             foreach ($this->items as $item) {
                 if ($this->type === StockAdjustmentType::TYPE_IN) {
-                    $item->product()->increment('stock', $item->qty);
+                    $stockMovement->increase($item->product, $item->qty);
 
                     continue;
                 }
 
-                $product = $item->product()->lockForUpdate()->first();
-
-                if ($product->stock < $item->qty) {
-                    throw new RuntimeException(
-                        "Insufficient stock for {$product->sku}: have {$product->stock}, need {$item->qty}.",
-                    );
-                }
-
-                $product->decrement('stock', $item->qty);
+                $stockMovement->decrease($item->product, $item->qty);
             }
 
             $this->update(['status' => StockAdjustmentStatus::STATUS_APPROVED]);

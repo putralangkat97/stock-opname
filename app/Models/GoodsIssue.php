@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Concerns\Auditable;
+use App\Domain\StockMovement\Services\StockMovementService;
 use App\Enums\GoodsIssueStatus;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -64,17 +65,14 @@ class GoodsIssue extends Model
             throw new RuntimeException('Only a Draft issue can be approved.');
         }
 
-        DB::transaction(function () {
+        $stockMovement = app(StockMovementService::class);
+
+        DB::transaction(function () use ($stockMovement) {
             foreach ($this->items as $item) {
-                $product = $item->product()->lockForUpdate()->first();
-
-                if ($product->stock < $item->qty) {
-                    throw new RuntimeException(
-                        "Insufficient stock for {$product->sku}: have {$product->stock}, need {$item->qty}.",
-                    );
-                }
-
-                $product->decrement('stock', $item->qty);
+                // decrease() does its own row-lock fetch internally — it
+                // doesn't matter whether $item->product here is stale or
+                // was loaded earlier in the request.
+                $stockMovement->decrease($item->product, $item->qty);
             }
 
             $this->update(['status' => GoodsIssueStatus::STATUS_ISSUED]);
