@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Concerns\Auditable;
+use App\Domain\StockMovement\Services\StockMovementService;
 use App\Enums\WarehouseTransferStatus;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -82,17 +83,11 @@ class WarehouseTransfer extends Model
             );
         }
 
-        DB::transaction(function () {
+        $stockMovement = app(StockMovementService::class);
+
+        DB::transaction(function () use ($stockMovement) {
             foreach ($this->items as $item) {
-                $product = $item->product()->lockForUpdate()->first();
-
-                if ($product->stock < $item->qty) {
-                    throw new RuntimeException(
-                        "Insufficient stock for {$product->sku} at source warehouse: have {$product->stock}, need {$item->qty}.",
-                    );
-                }
-
-                $product->decrement('stock', $item->qty);
+                $stockMovement->decrease($item->product, $item->qty);
             }
 
             $this->update([
@@ -115,7 +110,9 @@ class WarehouseTransfer extends Model
             );
         }
 
-        DB::transaction(function () use ($receivedByUserId) {
+        $stockMovement = app(StockMovementService::class);
+
+        DB::transaction(function () use ($receivedByUserId, $stockMovement) {
             foreach ($this->items as $item) {
                 $sourceProduct = $item->product;
 
@@ -139,7 +136,7 @@ class WarehouseTransfer extends Model
                     ],
                 );
 
-                $destinationProduct->increment('stock', $item->qty);
+                $stockMovement->increase($destinationProduct, $item->qty);
             }
 
             $this->update([
@@ -172,10 +169,12 @@ class WarehouseTransfer extends Model
             );
         }
 
-        DB::transaction(function () {
+        $stockMovement = app(StockMovementService::class);
+
+        DB::transaction(function () use ($stockMovement) {
             if ($this->status === WarehouseTransferStatus::STATUS_IN_TRANSIT) {
                 foreach ($this->items as $item) {
-                    $item->product()->increment('stock', $item->qty);
+                    $stockMovement->increase($item->product, $item->qty);
                 }
             }
 

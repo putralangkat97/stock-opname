@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Concerns\Auditable;
+use App\Domain\StockMovement\Services\StockMovementService;
 use App\Enums\GoodsReceiptStatus;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -64,9 +65,11 @@ class GoodsReceipt extends Model
             throw new RuntimeException('Only a Draft receipt can be approved.');
         }
 
-        DB::transaction(function () {
+        $stockMovement = app(StockMovementService::class);
+
+        DB::transaction(function () use ($stockMovement) {
             foreach ($this->items as $item) {
-                $item->product()->increment('stock', $item->qty);
+                $stockMovement->increase($item->product, $item->qty);
             }
 
             $this->update(['status' => GoodsReceiptStatus::STATUS_RECEIVED]);
