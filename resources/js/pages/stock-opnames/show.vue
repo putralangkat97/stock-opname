@@ -337,7 +337,7 @@ function reject() {
                                     </Badge>
                                 </TableCell>
                                 <TableCell>
-                                    {{ item.scannedBy?.name ?? "—" }}
+                                    {{ item.scanned_by?.name ?? "—" }}
                                 </TableCell>
                                 <TableCell v-if="canCount" class="text-right">
                                     <form
