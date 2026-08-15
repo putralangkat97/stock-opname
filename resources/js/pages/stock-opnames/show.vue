@@ -52,7 +52,6 @@ watch(
 );
 
 function statusVariant(status: StockOpnameStatusValue) {
-    if (status === "Rejected") return "destructive";
     if (status === "Approved") return "default";
     return "secondary";
 }

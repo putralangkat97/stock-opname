@@ -72,7 +72,6 @@ watch(
 );
 
 function statusVariant(status: StockOpnameStatusValue) {
-    if (status === "Rejected") return "destructive";
     if (status === "Approved") return "default";
     if (status === "Completed") return "outline";
     if (status === "In Progress") return "outline";

@@ -214,7 +214,7 @@ export interface WarehouseTransfer {
 }
 
 export type StockOpnameStatusValue =
-    "Draft" | "In Progress" | "Completed" | "Approved" | "Rejected";
+    "Draft" | "In Progress" | "Completed" | "Approved";
 export type StockOpnameItemStatusValue =
     "Matched" | "Surplus" | "Shortage" | "Uncounted";
 
