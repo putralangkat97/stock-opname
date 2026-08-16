@@ -1629,3 +1629,121 @@ it('does not create a completion audit when stock opname completion fails', func
     expect($product->fresh()->stock)
         ->toBe(10);
 });
+
+it('does not create a duplicate completion audit when completing an already completed stock opname', function () {
+    $warehouse = createStockOpnameTestWarehouse();
+
+    $assignedTo = User::factory()->create();
+
+    $product = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 10,
+        sku: 'TEST-SO-IDEMPOTENT',
+    );
+
+    $stockOpname = createTestStockOpname(
+        warehouse: $warehouse,
+        assignedTo: $assignedTo,
+    );
+
+    $item = createStockOpnameTestItem(
+        stockOpname: $stockOpname,
+        product: $product,
+        systemQty: 10,
+    );
+
+    $item->recordCount(
+        physicalQty: 13,
+        scannedBy: $assignedTo,
+    );
+
+    $completionService = app(StockOpnameCompletionService::class);
+
+    /*
+     * First completion must succeed.
+     */
+    $completionService->complete($stockOpname);
+
+    $stockOpname->refresh();
+
+    expect($stockOpname->status)
+        ->toBe(StockOpnameStatus::STATUS_COMPLETED);
+
+    /*
+     * Exactly one completion audit should exist.
+     */
+    expect(
+        $stockOpname->auditLogs()
+            ->where('action', 'completed')
+            ->count(),
+    )->toBe(1);
+
+    $firstAudit = $stockOpname->auditLogs()
+        ->where('action', 'completed')
+        ->first();
+
+    expect($firstAudit)->not->toBeNull();
+
+    expect($firstAudit->details['variance_qty'] ?? null)
+        ->toBe(3);
+
+    /*
+     * Capture the completion state before attempting the second completion.
+     */
+    $completedDate = $stockOpname->completed_date;
+    $totalSystemQty = $stockOpname->total_system_qty;
+    $totalPhysicalQty = $stockOpname->total_physical_qty;
+    $totalVarianceQty = $stockOpname->total_variance_qty;
+    $totalVarianceValue = $stockOpname->total_variance_value;
+
+    /*
+     * Second completion must be rejected.
+     */
+    expect(
+        fn () => $completionService->complete($stockOpname),
+    )->toThrow(
+        RuntimeException::class,
+        'Stock opname cannot be completed in its current state.',
+    );
+
+    /*
+     * The Stock Opname must remain exactly as it was after the first
+     * successful completion.
+     */
+    $stockOpname->refresh();
+
+    expect($stockOpname->status)
+        ->toBe(StockOpnameStatus::STATUS_COMPLETED);
+
+    expect($stockOpname->completed_date)
+        ->toEqual($completedDate);
+
+    expect($stockOpname->total_system_qty)
+        ->toBe($totalSystemQty);
+
+    expect($stockOpname->total_physical_qty)
+        ->toBe($totalPhysicalQty);
+
+    expect($stockOpname->total_variance_qty)
+        ->toBe($totalVarianceQty);
+
+    expect((float) $stockOpname->total_variance_value)
+        ->toBe((float) $totalVarianceValue);
+
+    /*
+     * Most importantly, the second attempt must not create another
+     * completion audit.
+     */
+    expect(
+        $stockOpname->auditLogs()
+            ->where('action', 'completed')
+            ->count(),
+    )->toBe(1);
+
+    /*
+     * Completing an already completed Stock Opname must never mutate
+     * actual product stock.
+     */
+    expect($product->fresh()->stock)
+        ->toBe(10);
+});
