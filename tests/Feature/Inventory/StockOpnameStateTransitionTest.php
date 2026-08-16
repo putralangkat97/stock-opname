@@ -5,9 +5,8 @@ use App\Models\StockOpname;
 use App\Models\User;
 use App\Models\Warehouse;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
 
-uses(TestCase::class, RefreshDatabase::class);
+uses(RefreshDatabase::class);
 
 it('transitions a draft stock opname to in progress through its state', function () {
     $stockOpname = StockOpname::query()->create([
