@@ -1,15 +1,15 @@
 <?php
 
-use App\Domain\GoodsReceipt\Services\GoodsReceiptApprovalService;
-use App\Enums\GoodsReceiptStatus;
+use App\Domain\GoodsIssue\Services\GoodsIssueApprovalService;
+use App\Enums\GoodsIssueStatus;
 use App\Models\BinLocation;
 use App\Models\Brand;
 use App\Models\Category;
-use App\Models\GoodsReceipt;
-use App\Models\GoodsReceiptItem;
+use App\Models\Customer;
+use App\Models\GoodsIssue;
+use App\Models\GoodsIssueItem;
 use App\Models\Product;
 use App\Models\Rack;
-use App\Models\Supplier;
 use App\Models\Unit;
 use App\Models\User;
 use App\Models\Warehouse;
@@ -17,42 +17,42 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-function createGoodsReceiptTestProduct(
+function createGoodsIssueTestProduct(
     int $stock = 10,
-    string $sku = 'TEST-GR-SKU-001',
+    string $sku = 'TEST-GI-SKU-001',
 ): Product {
     $suffix = str()->random(8);
 
     $category = Category::query()->create([
-        'code' => "TEST-GR-CAT-{$suffix}",
+        'code' => "TEST-GI-CAT-{$suffix}",
         'name' => 'Test Category',
     ]);
 
     $brand = Brand::query()->create([
-        'code' => "TEST-GR-BRAND-{$suffix}",
+        'code' => "TEST-GI-BRAND-{$suffix}",
         'name' => 'Test Brand',
     ]);
 
     $unit = Unit::query()->create([
-        'code' => "TEST-GR-UNIT-{$suffix}",
+        'code' => "TEST-GI-UNIT-{$suffix}",
         'name' => 'Pieces',
         'symbol' => 'pcs',
     ]);
 
     $warehouse = Warehouse::query()->create([
-        'code' => "TEST-GR-WH-{$suffix}",
+        'code' => "TEST-GI-WH-{$suffix}",
         'name' => 'Test Warehouse',
     ]);
 
     $rack = Rack::query()->create([
         'warehouse_id' => $warehouse->id,
-        'code' => "TEST-GR-RACK-{$suffix}",
+        'code' => "TEST-GI-RACK-{$suffix}",
     ]);
 
     $binLocation = BinLocation::query()->create([
         'rack_id' => $rack->id,
         'warehouse_id' => $warehouse->id,
-        'code' => "TEST-GR-BIN-{$suffix}",
+        'code' => "TEST-GI-BIN-{$suffix}",
     ]);
 
     return Product::query()->create([
@@ -67,31 +67,31 @@ function createGoodsReceiptTestProduct(
     ]);
 }
 
-function createTestGoodsReceipt(
+function createTestGoodsIssue(
     Product $product,
     int $qty = 5,
-): GoodsReceipt {
+): GoodsIssue {
     $suffix = str()->random(8);
 
-    $supplier = Supplier::query()->create([
-        'code' => "TEST-GR-SUP-{$suffix}",
-        'name' => 'Test Supplier',
+    $customer = Customer::query()->create([
+        'code' => "TEST-GI-CUSTOMER-{$suffix}",
+        'name' => 'Test Customer',
     ]);
 
     $user = User::factory()->create();
 
-    $receipt = GoodsReceipt::query()->create([
-        'supplier_id' => $supplier->id,
+    $issue = GoodsIssue::query()->create([
+        'customer_id' => $customer->id,
         'warehouse_id' => $product->warehouse_id,
-        'received_by' => $user->id,
-        'receipt_number' => "TEST-GR-{$suffix}",
+        'issued_by' => $user->id,
+        'issue_number' => "TEST-GI-{$suffix}",
         'date' => now()->toDateString(),
-        'status' => GoodsReceiptStatus::STATUS_DRAFT,
+        'status' => GoodsIssueStatus::STATUS_DRAFT,
         'total_amount' => $qty * 100,
     ]);
 
-    GoodsReceiptItem::query()->create([
-        'goods_receipt_id' => $receipt->id,
+    GoodsIssueItem::query()->create([
+        'goods_issue_id' => $issue->id,
         'product_id' => $product->id,
         'product_sku_snapshot' => $product->sku,
         'product_name_snapshot' => $product->name,
@@ -100,17 +100,17 @@ function createTestGoodsReceipt(
         'subtotal' => $qty * 100,
     ]);
 
-    return $receipt;
+    return $issue;
 }
 
-it('increases product stock when a goods receipt is approved', function () {
-    $product = createGoodsReceiptTestProduct(10);
+it('decreases product stock when a goods issue is approved', function () {
+    $product = createGoodsIssueTestProduct(10);
 
-    $receipt = createTestGoodsReceipt($product, 5);
+    $issue = createTestGoodsIssue($product, 4);
 
-    app(GoodsReceiptApprovalService::class)->approve($receipt);
+    app(GoodsIssueApprovalService::class)->approve($issue);
 
-    expect($product->fresh()->stock)->toBe(15);
-    expect($receipt->fresh()->status)
-        ->toBe(GoodsReceiptStatus::STATUS_RECEIVED);
+    expect($product->fresh()->stock)->toBe(6);
+    expect($issue->fresh()->status)
+        ->toBe(GoodsIssueStatus::STATUS_ISSUED);
 });
