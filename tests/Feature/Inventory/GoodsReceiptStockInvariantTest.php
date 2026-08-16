@@ -114,3 +114,37 @@ it('decreases product stock when a goods issue is approved', function () {
     expect($issue->fresh()->status)
         ->toBe(GoodsIssueStatus::STATUS_ISSUED);
 });
+
+it('rolls back the entire goods issue when stock is insufficient', function () {
+    $productA = createGoodsIssueTestProduct(
+        stock: 10,
+        sku: 'TEST-GI-SKU-A',
+    );
+
+    $productB = createGoodsIssueTestProduct(
+        stock: 20,
+        sku: 'TEST-GI-SKU-B',
+    );
+
+    $issue = createTestGoodsIssue($productA, 3);
+
+    GoodsIssueItem::query()->create([
+        'goods_issue_id' => $issue->id,
+        'product_id' => $productB->id,
+        'product_sku_snapshot' => $productB->sku,
+        'product_name_snapshot' => $productB->name,
+        'qty' => 30,
+        'unit_price' => 100,
+        'subtotal' => 3000,
+    ]);
+
+    expect(
+        fn () => app(GoodsIssueApprovalService::class)->approve($issue),
+    )->toThrow(RuntimeException::class);
+
+    expect($productA->fresh()->stock)->toBe(10);
+    expect($productB->fresh()->stock)->toBe(20);
+
+    expect($issue->fresh()->status)
+        ->toBe(GoodsIssueStatus::STATUS_DRAFT);
+});
