@@ -25,7 +25,10 @@ return new class extends Migration
                 ->restrictOnDelete();
 
             $table->string('adjustment_number')->unique();
-            $table->enum('type', [StockAdjustmentType::class]);
+            $table->enum(
+                'type',
+                array_column(StockAdjustmentType::cases(), 'value'),
+            );
             $table->string('reason');
             $table->date('date');
             $table
