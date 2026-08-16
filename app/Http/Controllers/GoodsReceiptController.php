@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\GoodsReceipt\ApproveGoodsReceipt;
 use App\Concerns\NotifiesApprovers;
 use App\Enums\GoodsReceiptStatus;
 use App\Http\Requests\StoreGoodsReceiptRequest;
@@ -110,12 +111,12 @@ class GoodsReceiptController extends Controller
         return back()->with('success', 'Goods receipt updated.');
     }
 
-    public function approve(GoodsReceipt $goodsReceipt): RedirectResponse
+    public function approve(GoodsReceipt $goodsReceipt, ApproveGoodsReceipt $action): RedirectResponse
     {
         $this->authorize('approve', $goodsReceipt);
 
         try {
-            $goodsReceipt->approve();
+            $action->execute($goodsReceipt);
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
         }
