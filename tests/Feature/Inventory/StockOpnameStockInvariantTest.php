@@ -642,3 +642,381 @@ it('updates an existing stock opname count consistently when recounting', functi
     // Recounting must still never mutate actual product stock.
     expect($product->fresh()->stock)->toBe(10);
 });
+
+it('aggregates multiple stock opname items correctly when completing', function () {
+    $warehouse = createStockOpnameTestWarehouse();
+
+    $assignedTo = User::factory()->create();
+
+    $firstProduct = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 10,
+        sku: 'TEST-SO-COMPLETE-FIRST',
+    );
+
+    $secondProduct = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 20,
+        sku: 'TEST-SO-COMPLETE-SECOND',
+    );
+
+    $stockOpname = createTestStockOpname(
+        warehouse: $warehouse,
+        assignedTo: $assignedTo,
+    );
+
+    $firstItem = createStockOpnameTestItem(
+        stockOpname: $stockOpname,
+        product: $firstProduct,
+        systemQty: 10,
+    );
+
+    $secondItem = createStockOpnameTestItem(
+        stockOpname: $stockOpname,
+        product: $secondProduct,
+        systemQty: 20,
+    );
+
+    $firstItem->recordCount(
+        physicalQty: 13,
+        scannedBy: $assignedTo,
+    );
+
+    $secondItem->recordCount(
+        physicalQty: 17,
+        scannedBy: $assignedTo,
+    );
+
+    app(StockOpnameCompletionService::class)->complete($stockOpname);
+
+    $stockOpname->refresh();
+
+    // First item: +3
+    // Second item: -3
+    // Total variance: 0
+    expect($stockOpname->total_system_qty)
+        ->toBe(30);
+
+    expect($stockOpname->total_physical_qty)
+        ->toBe(30);
+
+    expect($stockOpname->total_variance_qty)
+        ->toBe(0);
+
+    // First:  3 × 100 = +300
+    // Second: -3 × 100 = -300
+    // Total:             0
+    expect((float) $stockOpname->total_variance_value)
+        ->toBe(0.0);
+
+    expect($stockOpname->status)
+        ->toBe(StockOpnameStatus::STATUS_COMPLETED);
+
+    expect($stockOpname->completed_date)
+        ->not->toBeNull();
+
+    // Stock Opname must never mutate actual product stock.
+    expect($firstProduct->fresh()->stock)
+        ->toBe(10);
+
+    expect($secondProduct->fresh()->stock)
+        ->toBe(20);
+});
+
+
+it('calculates total variance value correctly using each product cost price', function () {
+    $warehouse = createStockOpnameTestWarehouse();
+
+    $assignedTo = User::factory()->create();
+
+    $firstProduct = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 10,
+        sku: 'TEST-SO-VALUE-FIRST',
+    );
+
+    $firstProduct->update([
+        'cost_price' => 100,
+    ]);
+
+    $secondProduct = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 20,
+        sku: 'TEST-SO-VALUE-SECOND',
+    );
+
+    $secondProduct->update([
+        'cost_price' => 250,
+    ]);
+
+    $stockOpname = createTestStockOpname(
+        warehouse: $warehouse,
+        assignedTo: $assignedTo,
+    );
+
+    $firstItem = createStockOpnameTestItem(
+        stockOpname: $stockOpname,
+        product: $firstProduct,
+        systemQty: 10,
+    );
+
+    $secondItem = createStockOpnameTestItem(
+        stockOpname: $stockOpname,
+        product: $secondProduct,
+        systemQty: 20,
+    );
+
+    // First item: +3 × 100 = +300
+    $firstItem->recordCount(
+        physicalQty: 13,
+        scannedBy: $assignedTo,
+    );
+
+    // Second item: -2 × 250 = -500
+    $secondItem->recordCount(
+        physicalQty: 18,
+        scannedBy: $assignedTo,
+    );
+
+    app(StockOpnameCompletionService::class)->complete($stockOpname);
+
+    $stockOpname->refresh();
+
+    expect($stockOpname->total_system_qty)
+        ->toBe(30);
+
+    expect($stockOpname->total_physical_qty)
+        ->toBe(31);
+
+    expect($stockOpname->total_variance_qty)
+        ->toBe(1);
+
+    // +300 - 500 = -200
+    expect((float) $stockOpname->total_variance_value)
+        ->toBe(-200.0);
+
+    expect($stockOpname->status)
+        ->toBe(StockOpnameStatus::STATUS_COMPLETED);
+
+    // Actual product stock must remain unchanged.
+    expect($firstProduct->fresh()->stock)
+        ->toBe(10);
+
+    expect($secondProduct->fresh()->stock)
+        ->toBe(20);
+});
+
+
+it('rejects completing a stock opname when an item has not been counted', function () {
+    $warehouse = createStockOpnameTestWarehouse();
+
+    $assignedTo = User::factory()->create();
+
+    $product = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 10,
+        sku: 'TEST-SO-INCOMPLETE',
+    );
+
+    $stockOpname = createTestStockOpname(
+        warehouse: $warehouse,
+        assignedTo: $assignedTo,
+    );
+
+    createStockOpnameTestItem(
+        stockOpname: $stockOpname,
+        product: $product,
+        systemQty: 10,
+    );
+
+    expect(
+        fn () => app(StockOpnameCompletionService::class)
+            ->complete($stockOpname),
+    )->toThrow(
+        RuntimeException::class,
+        'All lines must be counted before completing the opname.',
+    );
+
+    $stockOpname->refresh();
+
+    expect($stockOpname->status)
+        ->toBe(StockOpnameStatus::STATUS_IN_PROGRESS);
+
+    expect($stockOpname->completed_date)
+        ->toBeNull();
+
+    expect($stockOpname->total_system_qty)
+        ->toBe(0);
+
+    expect($stockOpname->total_physical_qty)
+        ->toBe(0);
+
+    expect($stockOpname->total_variance_qty)
+        ->toBe(0);
+
+    expect((float) $stockOpname->total_variance_value)
+        ->toBe(0.0);
+
+    // Actual stock must remain untouched.
+    expect($product->fresh()->stock)
+        ->toBe(10);
+});
+
+
+it('does not complete an already completed stock opname', function () {
+    $warehouse = createStockOpnameTestWarehouse();
+
+    $assignedTo = User::factory()->create();
+
+    $product = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 10,
+        sku: 'TEST-SO-ALREADY-COMPLETED',
+    );
+
+    $stockOpname = createTestStockOpname(
+        warehouse: $warehouse,
+        assignedTo: $assignedTo,
+    );
+
+    $item = createStockOpnameTestItem(
+        stockOpname: $stockOpname,
+        product: $product,
+        systemQty: 10,
+    );
+
+    $item->recordCount(
+        physicalQty: 12,
+        scannedBy: $assignedTo,
+    );
+
+    app(StockOpnameCompletionService::class)->complete($stockOpname);
+
+    $stockOpname->refresh();
+
+    $completedDate = $stockOpname->completed_date;
+
+    expect($stockOpname->status)
+        ->toBe(StockOpnameStatus::STATUS_COMPLETED);
+
+    expect($stockOpname->total_variance_qty)
+        ->toBe(2);
+
+    expect((float) $stockOpname->total_variance_value)
+        ->toBe(200.0);
+
+    // Attempting completion again should be rejected.
+    expect(
+        fn () => app(StockOpnameCompletionService::class)
+            ->complete($stockOpname),
+    )->toThrow(
+        RuntimeException::class,
+        'Stock opname cannot be completed in its current state.',
+    );
+
+    $stockOpname->refresh();
+
+    expect($stockOpname->status)
+        ->toBe(StockOpnameStatus::STATUS_COMPLETED);
+
+    expect($stockOpname->completed_date)
+        ->toEqual($completedDate);
+
+    // Stock must still be untouched.
+    expect($product->fresh()->stock)
+        ->toBe(10);
+});
+
+
+it('does not change product stock when completing a stock opname with mixed variances', function () {
+    $warehouse = createStockOpnameTestWarehouse();
+
+    $assignedTo = User::factory()->create();
+
+    $matchedProduct = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 10,
+        sku: 'TEST-SO-MIXED-MATCHED',
+    );
+
+    $surplusProduct = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 20,
+        sku: 'TEST-SO-MIXED-SURPLUS',
+    );
+
+    $shortageProduct = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 30,
+        sku: 'TEST-SO-MIXED-SHORTAGE',
+    );
+
+    $stockOpname = createTestStockOpname(
+        warehouse: $warehouse,
+        assignedTo: $assignedTo,
+    );
+
+    $matchedItem = createStockOpnameTestItem(
+        stockOpname: $stockOpname,
+        product: $matchedProduct,
+        systemQty: 10,
+    );
+
+    $surplusItem = createStockOpnameTestItem(
+        stockOpname: $stockOpname,
+        product: $surplusProduct,
+        systemQty: 20,
+    );
+
+    $shortageItem = createStockOpnameTestItem(
+        stockOpname: $stockOpname,
+        product: $shortageProduct,
+        systemQty: 30,
+    );
+
+    $matchedItem->recordCount(
+        physicalQty: 10,
+        scannedBy: $assignedTo,
+    );
+
+    $surplusItem->recordCount(
+        physicalQty: 25,
+        scannedBy: $assignedTo,
+    );
+
+    $shortageItem->recordCount(
+        physicalQty: 27,
+        scannedBy: $assignedTo,
+    );
+
+    app(StockOpnameCompletionService::class)->complete($stockOpname);
+
+    $stockOpname->refresh();
+
+    expect($stockOpname->total_system_qty)
+        ->toBe(60);
+
+    expect($stockOpname->total_physical_qty)
+        ->toBe(62);
+
+    expect($stockOpname->total_variance_qty)
+        ->toBe(2);
+
+    // +0 +5 -3 = +2
+    expect((float) $stockOpname->total_variance_value)
+        ->toBe(200.0);
+
+    expect($stockOpname->status)
+        ->toBe(StockOpnameStatus::STATUS_COMPLETED);
+
+    // Completion is reporting/reconciliation only.
+    // It must not modify actual inventory stock.
+    expect($matchedProduct->fresh()->stock)
+        ->toBe(10);
+
+    expect($surplusProduct->fresh()->stock)
+        ->toBe(20);
+
+    expect($shortageProduct->fresh()->stock)
+        ->toBe(30);
+});
