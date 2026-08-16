@@ -111,4 +111,24 @@ class StockOpname extends Model
     {
         return $this->state()->canReject($this);
     }
+
+    public function recordCount(StockOpnameItem $item, int $physicalQty, User $scannedBy): void
+    {
+        if ($item->stock_opname_id !== $this->id) {
+            throw new RuntimeException(
+                'Stock opname item does not belong to this stock opname.',
+            );
+        }
+
+        if (! $this->canRecordCount()) {
+            throw new RuntimeException(
+                'Stock opname cannot record counts in its current state.',
+            );
+        }
+
+        $item->recordCount(
+            physicalQty: $physicalQty,
+            scannedBy: $scannedBy,
+        );
+    }
 }
