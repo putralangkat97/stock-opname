@@ -154,3 +154,146 @@ it('does not change product stock when a stock opname is completed', function ()
     expect((float) $stockOpname->fresh()->total_variance_value)
         ->toBe(300.0);
 });
+
+it('marks a stock opname item as matched when physical quantity equals system quantity', function () {
+    $warehouse = createStockOpnameTestWarehouse();
+
+    $assignedTo = User::factory()->create();
+
+    $product = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 10,
+        sku: 'TEST-SO-MATCHED',
+    );
+
+    $stockOpname = createTestStockOpname(
+        warehouse: $warehouse,
+        assignedTo: $assignedTo,
+    );
+
+    $item = createStockOpnameTestItem(
+        stockOpname: $stockOpname,
+        product: $product,
+        systemQty: 10,
+    );
+
+    $item->update([
+        'physical_qty' => 10,
+        'status' => StockOpnameItemStatus::STATUS_MATCHED,
+    ]);
+
+    $item->refresh();
+
+    expect($item->physical_qty)->toBe(10);
+    expect($item->status)
+        ->toBe(StockOpnameItemStatus::STATUS_MATCHED);
+
+    expect($product->fresh()->stock)->toBe(10);
+});
+
+it('marks a stock opname item as surplus when physical quantity is greater than system quantity', function () {
+    $warehouse = createStockOpnameTestWarehouse();
+
+    $assignedTo = User::factory()->create();
+
+    $product = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 10,
+        sku: 'TEST-SO-SURPLUS',
+    );
+
+    $stockOpname = createTestStockOpname(
+        warehouse: $warehouse,
+        assignedTo: $assignedTo,
+    );
+
+    $item = createStockOpnameTestItem(
+        stockOpname: $stockOpname,
+        product: $product,
+        systemQty: 10,
+    );
+
+    $item->update([
+        'physical_qty' => 12,
+        'status' => StockOpnameItemStatus::STATUS_SURPLUS,
+    ]);
+
+    $item->refresh();
+
+    expect($item->physical_qty)->toBe(12);
+    expect($item->status)
+        ->toBe(StockOpnameItemStatus::STATUS_SURPLUS);
+
+    expect($item->physical_qty - $item->system_qty)->toBe(2);
+
+    expect($product->fresh()->stock)->toBe(10);
+});
+
+it('marks a stock opname item as shortage when physical quantity is less than system quantity', function () {
+    $warehouse = createStockOpnameTestWarehouse();
+
+    $assignedTo = User::factory()->create();
+
+    $product = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 10,
+        sku: 'TEST-SO-SHORTAGE',
+    );
+
+    $stockOpname = createTestStockOpname(
+        warehouse: $warehouse,
+        assignedTo: $assignedTo,
+    );
+
+    $item = createStockOpnameTestItem(
+        stockOpname: $stockOpname,
+        product: $product,
+        systemQty: 10,
+    );
+
+    $item->update([
+        'physical_qty' => 7,
+        'status' => StockOpnameItemStatus::STATUS_SHORTAGE,
+    ]);
+
+    $item->refresh();
+
+    expect($item->physical_qty)->toBe(7);
+    expect($item->status)
+        ->toBe(StockOpnameItemStatus::STATUS_SHORTAGE);
+
+    expect($item->physical_qty - $item->system_qty)->toBe(-3);
+
+    expect($product->fresh()->stock)->toBe(10);
+});
+
+it('keeps a stock opname item uncounted when physical quantity is null', function () {
+    $warehouse = createStockOpnameTestWarehouse();
+
+    $assignedTo = User::factory()->create();
+
+    $product = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 10,
+        sku: 'TEST-SO-UNCOUNTED',
+    );
+
+    $stockOpname = createTestStockOpname(
+        warehouse: $warehouse,
+        assignedTo: $assignedTo,
+    );
+
+    $item = createStockOpnameTestItem(
+        stockOpname: $stockOpname,
+        product: $product,
+        systemQty: 10,
+    );
+
+    $item->refresh();
+
+    expect($item->physical_qty)->toBeNull();
+    expect($item->status)
+        ->toBe(StockOpnameItemStatus::STATUS_UNCOUNTED);
+
+    expect($product->fresh()->stock)->toBe(10);
+});
