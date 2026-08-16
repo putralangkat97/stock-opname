@@ -339,9 +339,11 @@ it('rejects completing a warehouse transfer unless it is in transit', function (
         qty: 4,
     );
 
+    $receivedBy = User::factory()->create();
+
     expect(
         fn () => app(WarehouseTransferCompletionService::class)
-            ->complete($transfer),
+            ->complete($transfer, $receivedBy->id),
     )->toThrow(
         RuntimeException::class,
         'Only an In Transit transfer can be completed.',
