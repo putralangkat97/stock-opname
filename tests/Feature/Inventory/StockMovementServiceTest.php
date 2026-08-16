@@ -9,41 +9,46 @@ use App\Models\Rack;
 use App\Models\Unit;
 use App\Models\Warehouse;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 
 uses(RefreshDatabase::class);
 
-function createTestProduct(int $stock = 10): Product
-{
+function createTestProduct(
+    int $stock = 10,
+    string $sku = 'TEST-SKU-001',
+): Product {
+    $suffix = str()->random(8);
+
     $category = Category::query()->create([
-        'code' => 'TEST-CAT',
+        'code' => "TEST-CAT-{$suffix}",
         'name' => 'Test Category',
     ]);
 
     $brand = Brand::query()->create([
-        'code' => 'TEST-BRAND',
+        'code' => "TEST-BRAND-{$suffix}",
         'name' => 'Test Brand',
     ]);
 
     $unit = Unit::query()->create([
-        'code' => 'PCS',
+        'code' => "PCS-{$suffix}",
         'name' => 'Pieces',
         'symbol' => 'pcs',
     ]);
 
     $warehouse = Warehouse::query()->create([
-        'code' => 'TEST-WH',
+        'code' => "TEST-WH-{$suffix}",
         'name' => 'Test Warehouse',
     ]);
 
     $rack = Rack::query()->create([
         'warehouse_id' => $warehouse->id,
-        'code' => 'RACK-01',
+        'code' => "RACK-01-{$suffix}",
     ]);
 
     $binLocation = BinLocation::query()->create([
         'rack_id' => $rack->id,
         'warehouse_id' => $warehouse->id,
-        'code' => 'BIN-01',
+        'code' => "BIN-01-{$suffix}",
     ]);
 
     return Product::query()->create([
@@ -52,7 +57,7 @@ function createTestProduct(int $stock = 10): Product
         'unit_id' => $unit->id,
         'warehouse_id' => $warehouse->id,
         'bin_location_id' => $binLocation->id,
-        'sku' => 'TEST-SKU-001',
+        'sku' => $sku,
         'name' => 'Test Product',
         'stock' => $stock,
     ]);
@@ -93,4 +98,26 @@ it('synchronizes the passed product instance after decreasing stock', function (
     app(StockMovementService::class)->decrease($product, 3);
 
     expect($product->stock)->toBe(7);
+});
+
+it('rolls back all stock changes when a later movement fails', function () {
+    $productA = createTestProduct(10);
+
+    // Create a second product with the same related records pattern,
+    // but a different SKU.
+    $productB = createTestProduct(5);
+
+    expect(fn () => DB::transaction(function () use ($productA, $productB) {
+        $stockMovement = app(StockMovementService::class);
+
+        $stockMovement->decrease($productA, 3);
+
+        // This should fail.
+        $stockMovement->decrease($productB, 10);
+    }))->toThrow(
+        RuntimeException::class,
+    );
+
+    expect($productA->fresh()->stock)->toBe(10);
+    expect($productB->fresh()->stock)->toBe(5);
 });
