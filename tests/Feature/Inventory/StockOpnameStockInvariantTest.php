@@ -17,6 +17,7 @@ use App\Models\Warehouse;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Spatie\Permission\Models\Role;
 
 uses(RefreshDatabase::class);
 
@@ -1743,6 +1744,104 @@ it('does not create a duplicate completion audit when completing an already comp
     /*
      * Completing an already completed Stock Opname must never mutate
      * actual product stock.
+     */
+    expect($product->fresh()->stock)
+        ->toBe(10);
+});
+
+it('records the completing user and role snapshot in the stock opname completion audit', function () {
+    $warehouse = createStockOpnameTestWarehouse();
+
+    $assignedTo = User::factory()->create();
+
+    $supervisorRole = Role::query()->create([
+        'name' => 'Supervisor',
+        'guard_name' => 'web',
+    ]);
+
+    $completingUser = User::factory()->create();
+
+    $completingUser->assignRole($supervisorRole);
+
+    $product = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 10,
+        sku: 'TEST-SO-AUDIT-ACTOR',
+    );
+
+    $stockOpname = createTestStockOpname(
+        warehouse: $warehouse,
+        assignedTo: $assignedTo,
+    );
+
+    $item = createStockOpnameTestItem(
+        stockOpname: $stockOpname,
+        product: $product,
+        systemQty: 10,
+    );
+
+    $item->recordCount(
+        physicalQty: 13,
+        scannedBy: $assignedTo,
+    );
+
+    /*
+     * Authenticate as the user who actually completes the Stock Opname.
+     */
+    $this->actingAs($completingUser);
+
+    app(StockOpnameCompletionService::class)
+        ->complete($stockOpname);
+
+    $audit = $stockOpname->auditLogs()
+        ->where('action', 'completed')
+        ->latest()
+        ->first();
+
+    expect($audit)->not->toBeNull();
+
+    /*
+     * The audit must identify the actual user who performed the action,
+     * not the user assigned to the Stock Opname.
+     */
+    expect($audit->user_id)
+        ->toBe($completingUser->id);
+
+    expect($audit->user_id)
+        ->not->toBe($assignedTo->id);
+
+    /*
+     * The role must be snapshotted at the time of the action.
+     */
+    expect($audit->role_snapshot)
+        ->toBe('Supervisor');
+
+    /*
+     * The audit must still identify the Stock Opname correctly.
+     */
+    expect($audit->action)
+        ->toBe('completed');
+
+    expect($audit->module)
+        ->toBe('StockOpname');
+
+    expect($audit->auditable_id)
+        ->toBe($stockOpname->id);
+
+    expect($audit->auditable_type)
+        ->toBe($stockOpname->getMorphClass());
+
+    /*
+     * The completion result must remain correct.
+     */
+    expect($audit->details['variance_qty'] ?? null)
+        ->toBe(3);
+
+    expect($stockOpname->fresh()->status)
+        ->toBe(StockOpnameStatus::STATUS_COMPLETED);
+
+    /*
+     * Stock Opname must never mutate actual product stock.
      */
     expect($product->fresh()->stock)
         ->toBe(10);
