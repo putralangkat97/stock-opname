@@ -1846,3 +1846,117 @@ it('records the completing user and role snapshot in the stock opname completion
     expect($product->fresh()->stock)
         ->toBe(10);
 });
+
+it('preserves the completing user role snapshot when the user role changes later', function () {
+    $warehouse = createStockOpnameTestWarehouse();
+
+    $assignedTo = User::factory()->create();
+
+    $supervisorRole = Role::query()->create([
+        'name' => 'Supervisor',
+        'guard_name' => 'web',
+    ]);
+
+    $warehouseAdminRole = Role::query()->create([
+        'name' => 'Warehouse Admin',
+        'guard_name' => 'web',
+    ]);
+
+    $completingUser = User::factory()->create();
+
+    /*
+     * At the time of completion, the user is a Supervisor.
+     */
+    $completingUser->assignRole($supervisorRole);
+
+    $product = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 10,
+        sku: 'TEST-SO-AUDIT-ROLE-SNAPSHOT',
+    );
+
+    $stockOpname = createTestStockOpname(
+        warehouse: $warehouse,
+        assignedTo: $assignedTo,
+    );
+
+    $item = createStockOpnameTestItem(
+        stockOpname: $stockOpname,
+        product: $product,
+        systemQty: 10,
+    );
+
+    $item->recordCount(
+        physicalQty: 13,
+        scannedBy: $assignedTo,
+    );
+
+    /*
+     * Authenticate as the Supervisor who performs the completion.
+     */
+    $this->actingAs($completingUser);
+
+    app(StockOpnameCompletionService::class)
+        ->complete($stockOpname);
+
+    $audit = $stockOpname->auditLogs()
+        ->where('action', 'completed')
+        ->latest()
+        ->first();
+
+    expect($audit)->not->toBeNull();
+
+    /*
+     * Verify the role at the moment of completion.
+     */
+    expect($audit->user_id)
+        ->toBe($completingUser->id);
+
+    expect($audit->role_snapshot)
+        ->toBe('Supervisor');
+
+    /*
+     * The user subsequently changes roles.
+     *
+     * This must NOT modify the historical audit record.
+     */
+    $completingUser->syncRoles([$warehouseAdminRole]);
+
+    $completingUser->refresh();
+
+    expect($completingUser->getRoleNames()->first())
+        ->toBe('Warehouse Admin');
+
+    /*
+     * Reload the audit from the database to ensure we're not merely
+     * asserting against an already-loaded Eloquent instance.
+     */
+    $audit->refresh();
+
+    expect($audit->role_snapshot)
+        ->toBe('Supervisor');
+
+    expect($audit->role_snapshot)
+        ->not->toBe('Warehouse Admin');
+
+    /*
+     * The historical audit must still identify the same actor.
+     */
+    expect($audit->user_id)
+        ->toBe($completingUser->id);
+
+    /*
+     * The completion details must also remain intact.
+     */
+    expect($audit->details['variance_qty'] ?? null)
+        ->toBe(3);
+
+    /*
+     * Completing the Stock Opname must never mutate actual product stock.
+     */
+    expect($product->fresh()->stock)
+        ->toBe(10);
+
+    expect($stockOpname->fresh()->status)
+        ->toBe(StockOpnameStatus::STATUS_COMPLETED);
+});
