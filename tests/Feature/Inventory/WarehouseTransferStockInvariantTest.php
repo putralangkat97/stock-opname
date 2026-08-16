@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\StockMovement\Services\StockMovementService;
 use App\Domain\WarehouseTransfer\Services\WarehouseTransferCompletionService;
 use App\Domain\WarehouseTransfer\Services\WarehouseTransferDispatchService;
 use App\Enums\WarehouseTransferStatus;
@@ -237,4 +238,88 @@ it('increases existing destination product stock when a warehouse transfer is co
     expect($transfer->fresh()->status)
         ->toBe(WarehouseTransferStatus::STATUS_COMPLETED);
     expect($sourceProduct->fresh()->stock)->toBe(6);
+});
+
+it('rolls back the entire warehouse transfer when completion fails', function () {
+    $fromWarehouse = createWarehouseTransferTestWarehouse('TEST-WT-FROM');
+    $toWarehouse = createWarehouseTransferTestWarehouse('TEST-WT-TO');
+
+    $firstProduct = createWarehouseTransferTestProduct(
+        warehouse: $fromWarehouse,
+        stock: 10,
+        sku: 'TEST-WT-FIRST',
+    );
+
+    $secondProduct = createWarehouseTransferTestProduct(
+        warehouse: $fromWarehouse,
+        stock: 10,
+        sku: 'TEST-WT-SECOND',
+    );
+
+    $transfer = createTestWarehouseTransfer(
+        product: $firstProduct,
+        toWarehouse: $toWarehouse,
+        qty: 4,
+    );
+
+    WarehouseTransferItem::query()->create([
+        'warehouse_transfer_id' => $transfer->id,
+        'product_id' => $secondProduct->id,
+        'product_sku_snapshot' => $secondProduct->sku,
+        'product_name_snapshot' => $secondProduct->name,
+        'qty' => 6,
+    ]);
+
+    app(WarehouseTransferDispatchService::class)->dispatch($transfer);
+
+    $receivedBy = User::factory()->create();
+
+    $this->mock(StockMovementService::class, function ($mock) {
+        $mock->expects('increase')
+            ->twice()
+            ->andReturnUsing(function (Product $product, int $qty): void {
+                if ($qty === 6) {
+                    throw new RuntimeException('Simulated completion failure.');
+                }
+
+                $product->increment('stock', $qty);
+            });
+    });
+
+    expect(
+        fn () => app(WarehouseTransferCompletionService::class)->complete(
+            $transfer,
+            $receivedBy->id,
+        ),
+    )->toThrow(
+        RuntimeException::class,
+        'Simulated completion failure.',
+    );
+
+    // The first destination product was created before the failure,
+    // therefore the transaction must have removed it.
+    expect(
+        Product::query()
+            ->where('sku', $firstProduct->sku)
+            ->where('warehouse_id', $toWarehouse->id)
+            ->exists(),
+    )->toBeFalse();
+
+    // The second destination product must also not exist.
+    expect(
+        Product::query()
+            ->where('sku', $secondProduct->sku)
+            ->where('warehouse_id', $toWarehouse->id)
+            ->exists(),
+    )->toBeFalse();
+
+    // Completion never happened.
+    expect($transfer->fresh()->status)
+        ->toBe(WarehouseTransferStatus::STATUS_IN_TRANSIT);
+
+    expect($transfer->fresh()->received_by)->toBeNull();
+
+    // Dispatch happened before completion, so source stock remains reduced.
+    expect($firstProduct->fresh()->stock)->toBe(6);
+    expect($secondProduct->fresh()->stock)->toBe(4);
 });
