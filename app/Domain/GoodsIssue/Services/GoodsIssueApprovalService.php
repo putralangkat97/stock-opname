@@ -12,8 +12,7 @@ final class GoodsIssueApprovalService
 {
     public function __construct(
         private readonly StockMovementService $stockMovement,
-    ) {
-    }
+    ) {}
 
     public function approve(GoodsIssue $goodsIssue): void
     {

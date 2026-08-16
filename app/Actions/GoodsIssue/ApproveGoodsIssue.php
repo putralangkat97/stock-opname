@@ -9,8 +9,7 @@ final class ApproveGoodsIssue
 {
     public function __construct(
         private readonly GoodsIssueApprovalService $service,
-    ) {
-    }
+    ) {}
 
     public function execute(GoodsIssue $goodsIssue): void
     {

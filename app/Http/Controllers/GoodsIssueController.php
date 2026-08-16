@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Concerns\NotifiesApprovers;
 use App\Actions\GoodsIssue\ApproveGoodsIssue;
+use App\Concerns\NotifiesApprovers;
 use App\Enums\GoodsIssueStatus;
 use App\Http\Requests\StoreGoodsIssueRequest;
 use App\Http\Requests\UpdateGoodsIssueRequest;
