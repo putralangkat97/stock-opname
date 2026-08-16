@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\WarehouseTransfer\CompleteWarehouseTransfer;
+use App\Actions\WarehouseTransfer\MarkWarehouseTransferInTransit;
+use App\Actions\WarehouseTransfer\RejectWarehouseTransfer;
 use App\Enums\WarehouseTransferStatus;
 use App\Http\Requests\StoreWarehouseTransferRequest;
 use App\Models\Product;
@@ -94,12 +97,12 @@ class WarehouseTransferController extends Controller
             ->with('success', 'Warehouse transfer created as Pending.');
     }
 
-    public function markInTransit(WarehouseTransfer $warehouseTransfer): RedirectResponse
+    public function markInTransit(WarehouseTransfer $warehouseTransfer, MarkWarehouseTransferInTransit $action): RedirectResponse
     {
         $this->authorize('markInTransit', $warehouseTransfer);
 
         try {
-            $warehouseTransfer->markInTransit();
+            $action->execute($warehouseTransfer);
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
         }
@@ -122,20 +125,20 @@ class WarehouseTransferController extends Controller
         return back()->with('success', 'Transfer marked In Transit — stock deducted from source.');
     }
 
-    public function complete(WarehouseTransfer $warehouseTransfer): RedirectResponse
+    public function complete(WarehouseTransfer $warehouseTransfer, CompleteWarehouseTransfer $action): RedirectResponse
     {
         $this->authorize('complete', $warehouseTransfer);
 
-        $warehouseTransfer->complete(Auth::id());
+        $action->execute($warehouseTransfer, Auth::id());
 
         return back()->with('success', 'Transfer completed — stock added to destination.');
     }
 
-    public function reject(WarehouseTransfer $warehouseTransfer): RedirectResponse
+    public function reject(WarehouseTransfer $warehouseTransfer, RejectWarehouseTransfer $action): RedirectResponse
     {
         $this->authorize('reject', $warehouseTransfer);
 
-        $warehouseTransfer->reject();
+        $action->execute($warehouseTransfer);
 
         return back()->with('success', 'Transfer rejected.');
     }
