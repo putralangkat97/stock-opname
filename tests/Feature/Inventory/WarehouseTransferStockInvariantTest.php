@@ -325,15 +325,17 @@ it('rolls back the entire warehouse transfer when completion fails', function ()
 });
 
 it('rejects completing a warehouse transfer unless it is in transit', function () {
-    $warehouse = createWarehouseTransferTestWarehouse();
+    $fromWarehouse = createWarehouseTransferTestWarehouse('TEST-WT-FROM');
+    $toWarehouse = createWarehouseTransferTestWarehouse('TEST-WT-TO');
 
     $product = createWarehouseTransferTestProduct(
-        warehouse: $warehouse,
+        warehouse: $fromWarehouse,
         stock: 10,
     );
 
     $transfer = createTestWarehouseTransfer(
         product: $product,
+        toWarehouse: $toWarehouse,
         qty: 4,
     );
 
@@ -345,11 +347,22 @@ it('rejects completing a warehouse transfer unless it is in transit', function (
         'Only an In Transit transfer can be completed.',
     );
 
+    // The transfer was never dispatched, so source stock must remain unchanged.
     expect($product->fresh()->stock)->toBe(10);
 
+    // The transfer must remain Pending.
     expect($transfer->fresh()->status)
         ->toBe(WarehouseTransferStatus::STATUS_PENDING);
 
+    // Completion never happened.
     expect($transfer->fresh()->received_by)
         ->toBeNull();
+
+    // No destination product should have been created.
+    expect(
+        Product::query()
+            ->where('sku', $product->sku)
+            ->where('warehouse_id', $toWarehouse->id)
+            ->exists(),
+    )->toBeFalse();
 });
