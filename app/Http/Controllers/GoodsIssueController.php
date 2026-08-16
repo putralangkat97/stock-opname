@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Concerns\NotifiesApprovers;
+use App\Actions\GoodsIssue\ApproveGoodsIssue;
 use App\Enums\GoodsIssueStatus;
 use App\Http\Requests\StoreGoodsIssueRequest;
 use App\Http\Requests\UpdateGoodsIssueRequest;
@@ -111,12 +112,12 @@ class GoodsIssueController extends Controller
         return back()->with('success', 'Goods issue updated.');
     }
 
-    public function approve(GoodsIssue $goodsIssue): RedirectResponse
+    public function approve(GoodsIssue $goodsIssue, ApproveGoodsIssue $action): RedirectResponse
     {
         $this->authorize('approve', $goodsIssue);
 
         try {
-            $goodsIssue->approve();
+            $action->execute($goodsIssue);
         } catch (\RuntimeException $e) {
             // Insufficient stock, or wrong status — a real business-rule
             // rejection, not a bug. Surface it as a flash error rather than

@@ -54,35 +54,6 @@ class GoodsIssue extends Model
         return $this->hasMany(GoodsIssueItem::class);
     }
 
-    /**
-     * Approve this issue: stock only changes here, never at draft/creation.
-     * Guards against any line driving a product's stock negative — the whole
-     * batch is rejected atomically if that happens (no partial deduction).
-     */
-    public function approve(): void
-    {
-        if ($this->status !== GoodsIssueStatus::STATUS_DRAFT) {
-            throw new RuntimeException('Only a Draft issue can be approved.');
-        }
-
-        $stockMovement = app(StockMovementService::class);
-
-        DB::transaction(function () use ($stockMovement) {
-            foreach ($this->items as $item) {
-                // decrease() does its own row-lock fetch internally — it
-                // doesn't matter whether $item->product here is stale or
-                // was loaded earlier in the request.
-                $stockMovement->decrease($item->product, $item->qty);
-            }
-
-            $this->update(['status' => GoodsIssueStatus::STATUS_ISSUED]);
-            $this->logAudit('approved');
-
-            // AuditLog + low_stock notification dispatch hooks in here
-            // once the Supporting batch is generated.
-        });
-    }
-
     public function cancel(): void
     {
         if ($this->status !== GoodsIssueStatus::STATUS_DRAFT) {
