@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use RuntimeException;
 
 #[Fillable([
     'stock_opname_id',
@@ -51,6 +52,14 @@ class StockOpnameItem extends Model
      */
     public function recordCount(int $physicalQty, User $scannedBy): void
     {
+        $stockOpname = $this->stockOpname;
+
+        if (! $stockOpname->canRecordCount()) {
+            throw new RuntimeException(
+                'Stock opname cannot record counts in its current state.',
+            );
+        }
+
         $status = match (true) {
             $physicalQty === $this->system_qty => StockOpnameItemStatus::STATUS_MATCHED,
             $physicalQty > $this->system_qty => StockOpnameItemStatus::STATUS_SURPLUS,
