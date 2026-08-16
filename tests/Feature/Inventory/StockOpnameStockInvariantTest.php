@@ -15,6 +15,7 @@ use App\Models\Unit;
 use App\Models\User;
 use App\Models\Warehouse;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 
 uses(RefreshDatabase::class);
 
@@ -1394,4 +1395,98 @@ it('calculates aggregate stock opname totals correctly when multiple items are c
     expect($productA->fresh()->stock)->toBe(10);
     expect($productB->fresh()->stock)->toBe(20);
     expect($productC->fresh()->stock)->toBe(15);
+});
+
+it('rolls back stock opname completion when the completion update fails', function () {
+    $warehouse = createStockOpnameTestWarehouse();
+
+    $assignedTo = User::factory()->create();
+
+    $product = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 10,
+        sku: 'TEST-SO-ROLLBACK',
+    );
+
+    $stockOpname = createTestStockOpname(
+        warehouse: $warehouse,
+        assignedTo: $assignedTo,
+    );
+
+    $item = createStockOpnameTestItem(
+        stockOpname: $stockOpname,
+        product: $product,
+        systemQty: 10,
+    );
+
+    $item->recordCount(
+        physicalQty: 13,
+        scannedBy: $assignedTo,
+    );
+
+    /*
+     * Make the completion update fail at the database level.
+     *
+     * This creates an invalid value for the status column and verifies
+     * that the transaction protects the Stock Opname from partial writes.
+     */
+    DB::statement(
+        "CREATE TRIGGER fail_stock_opname_completion
+        BEFORE UPDATE OF status ON stock_opnames
+        WHEN NEW.status = 'Completed'
+        BEGIN
+            SELECT RAISE(ABORT, 'Simulated stock opname completion failure');
+        END"
+    );
+
+    try {
+        expect(
+            fn () => app(StockOpnameCompletionService::class)
+                ->complete($stockOpname),
+        )->toThrow(
+            \Illuminate\Database\QueryException::class,
+        );
+    } finally {
+        \Illuminate\Support\Facades\DB::statement(
+            'DROP TRIGGER IF EXISTS fail_stock_opname_completion'
+        );
+    }
+
+    /*
+     * The completion transaction must have rolled back completely.
+     */
+    $freshStockOpname = $stockOpname->fresh();
+
+    expect($freshStockOpname->status)
+        ->toBe(StockOpnameStatus::STATUS_IN_PROGRESS);
+
+    expect($freshStockOpname->completed_date)
+        ->toBeNull();
+
+    expect($freshStockOpname->total_system_qty)
+        ->toBe(0);
+
+    expect($freshStockOpname->total_physical_qty)
+        ->toBe(0);
+
+    expect($freshStockOpname->total_variance_qty)
+        ->toBe(0);
+
+    expect((float) $freshStockOpname->total_variance_value)
+        ->toBe(0.0);
+
+    /*
+     * The Stock Opname never mutates actual product stock.
+     */
+    expect($product->fresh()->stock)->toBe(10);
+
+    /*
+     * The counted item itself must remain intact.
+     */
+    $freshItem = $item->fresh();
+
+    expect($freshItem->physical_qty)->toBe(13);
+
+    expect($freshItem->status)
+        ->toBe(StockOpnameItemStatus::STATUS_SURPLUS);
 });
