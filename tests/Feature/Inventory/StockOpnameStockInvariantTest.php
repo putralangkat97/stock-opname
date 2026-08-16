@@ -1160,3 +1160,148 @@ it('does not overwrite an explicitly provided system quantity when creating a st
     expect($product->fresh()->stock)
         ->toBe(25);
 });
+
+it('rejects completing a stock opname when an item is still uncounted', function () {
+    $warehouse = createStockOpnameTestWarehouse();
+
+    $assignedTo = User::factory()->create();
+
+    $product = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 10,
+        sku: 'TEST-SO-COMPLETE-UNCOUNTED',
+    );
+
+    $stockOpname = createTestStockOpname(
+        warehouse: $warehouse,
+        assignedTo: $assignedTo,
+    );
+
+    createStockOpnameTestItem(
+        stockOpname: $stockOpname,
+        product: $product,
+        systemQty: 10,
+    );
+
+    expect(
+        fn () => app(StockOpnameCompletionService::class)
+            ->complete($stockOpname),
+    )->toThrow(
+        RuntimeException::class,
+    );
+
+    expect($stockOpname->fresh()->status)
+        ->toBe(StockOpnameStatus::STATUS_IN_PROGRESS);
+
+    expect($product->fresh()->stock)
+        ->toBe(10);
+});
+
+it('allows completing a stock opname when all items have been counted', function () {
+    $warehouse = createStockOpnameTestWarehouse();
+
+    $assignedTo = User::factory()->create();
+    $scannedBy = User::factory()->create();
+
+    $product = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 10,
+        sku: 'TEST-SO-COMPLETE-COUNTED',
+    );
+
+    $stockOpname = createTestStockOpname(
+        warehouse: $warehouse,
+        assignedTo: $assignedTo,
+    );
+
+    $item = createStockOpnameTestItem(
+        stockOpname: $stockOpname,
+        product: $product,
+        systemQty: 10,
+    );
+
+    $item->recordCount(
+        physicalQty: 10,
+        scannedBy: $scannedBy,
+    );
+
+    app(StockOpnameCompletionService::class)
+        ->complete($stockOpname);
+
+    expect($stockOpname->fresh()->status)
+        ->toBe(StockOpnameStatus::STATUS_COMPLETED);
+
+    expect($product->fresh()->stock)
+        ->toBe(10);
+});
+
+it('allows completing a stock opname with shortage and surplus items when all are counted', function () {
+    $warehouse = createStockOpnameTestWarehouse();
+
+    $assignedTo = User::factory()->create();
+    $scannedBy = User::factory()->create();
+
+    $surplusProduct = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 10,
+        sku: 'TEST-SO-COMPLETE-SURPLUS',
+    );
+
+    $shortageProduct = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 20,
+        sku: 'TEST-SO-COMPLETE-SHORTAGE',
+    );
+
+    $stockOpname = createTestStockOpname(
+        warehouse: $warehouse,
+        assignedTo: $assignedTo,
+    );
+
+    $surplusItem = createStockOpnameTestItem(
+        stockOpname: $stockOpname,
+        product: $surplusProduct,
+        systemQty: 10,
+    );
+
+    $shortageItem = createStockOpnameTestItem(
+        stockOpname: $stockOpname,
+        product: $shortageProduct,
+        systemQty: 20,
+    );
+
+    $surplusItem->recordCount(
+        physicalQty: 13,
+        scannedBy: $scannedBy,
+    );
+
+    $shortageItem->recordCount(
+        physicalQty: 17,
+        scannedBy: $scannedBy,
+    );
+
+    app(StockOpnameCompletionService::class)
+        ->complete($stockOpname);
+
+    $stockOpname->refresh();
+
+    expect($stockOpname->status)
+        ->toBe(StockOpnameStatus::STATUS_COMPLETED);
+
+    expect($stockOpname->total_system_qty)
+        ->toBe(30);
+
+    expect($stockOpname->total_physical_qty)
+        ->toBe(30);
+
+    expect($stockOpname->total_variance_qty)
+        ->toBe(0);
+
+    // Stock Opname records the physical reality but does not mutate
+    // Product::stock.
+    expect($surplusProduct->fresh()->stock)
+        ->toBe(10);
+
+    expect($shortageProduct->fresh()->stock)
+        ->toBe(20);
+});
