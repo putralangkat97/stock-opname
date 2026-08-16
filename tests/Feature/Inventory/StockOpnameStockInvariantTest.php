@@ -1305,3 +1305,93 @@ it('allows completing a stock opname with shortage and surplus items when all ar
     expect($shortageProduct->fresh()->stock)
         ->toBe(20);
 });
+
+it('calculates aggregate stock opname totals correctly when multiple items are completed', function () {
+    $warehouse = createStockOpnameTestWarehouse();
+
+    $assignedTo = User::factory()->create();
+
+    $productA = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 10,
+        sku: 'TEST-SO-TOTAL-A',
+    );
+
+    $productB = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 20,
+        sku: 'TEST-SO-TOTAL-B',
+    );
+
+    $productC = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 15,
+        sku: 'TEST-SO-TOTAL-C',
+    );
+
+    $stockOpname = createTestStockOpname(
+        warehouse: $warehouse,
+        assignedTo: $assignedTo,
+    );
+
+    $itemA = createStockOpnameTestItem(
+        stockOpname: $stockOpname,
+        product: $productA,
+        systemQty: 10,
+    );
+
+    $itemB = createStockOpnameTestItem(
+        stockOpname: $stockOpname,
+        product: $productB,
+        systemQty: 20,
+    );
+
+    $itemC = createStockOpnameTestItem(
+        stockOpname: $stockOpname,
+        product: $productC,
+        systemQty: 15,
+    );
+
+    $itemA->recordCount(
+        physicalQty: 10,
+        scannedBy: $assignedTo,
+    );
+
+    $itemB->recordCount(
+        physicalQty: 25,
+        scannedBy: $assignedTo,
+    );
+
+    $itemC->recordCount(
+        physicalQty: 12,
+        scannedBy: $assignedTo,
+    );
+
+    app(StockOpnameCompletionService::class)->complete($stockOpname);
+
+    $stockOpname->refresh();
+
+    expect($stockOpname->status)
+        ->toBe(StockOpnameStatus::STATUS_COMPLETED);
+
+    // 10 + 20 + 15 = 45
+    expect($stockOpname->total_system_qty)
+        ->toBe(45);
+
+    // 10 + 25 + 12 = 47
+    expect($stockOpname->total_physical_qty)
+        ->toBe(47);
+
+    // 0 + 5 - 3 = 2
+    expect($stockOpname->total_variance_qty)
+        ->toBe(2);
+
+    // (0 * 100) + (5 * 100) + (-3 * 100) = 200
+    expect((float) $stockOpname->total_variance_value)
+        ->toBe(200.0);
+
+    // Stock Opname completion must never mutate actual product stock.
+    expect($productA->fresh()->stock)->toBe(10);
+    expect($productB->fresh()->stock)->toBe(20);
+    expect($productC->fresh()->stock)->toBe(15);
+});
