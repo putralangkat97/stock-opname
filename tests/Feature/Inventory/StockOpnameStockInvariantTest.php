@@ -14,6 +14,7 @@ use App\Models\StockOpnameItem;
 use App\Models\Unit;
 use App\Models\User;
 use App\Models\Warehouse;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 
@@ -724,7 +725,6 @@ it('aggregates multiple stock opname items correctly when completing', function 
         ->toBe(20);
 });
 
-
 it('calculates total variance value correctly using each product cost price', function () {
     $warehouse = createStockOpnameTestWarehouse();
 
@@ -807,7 +807,6 @@ it('calculates total variance value correctly using each product cost price', fu
         ->toBe(20);
 });
 
-
 it('rejects completing a stock opname when an item has not been counted', function () {
     $warehouse = createStockOpnameTestWarehouse();
 
@@ -862,7 +861,6 @@ it('rejects completing a stock opname when an item has not been counted', functi
     expect($product->fresh()->stock)
         ->toBe(10);
 });
-
 
 it('does not complete an already completed stock opname', function () {
     $warehouse = createStockOpnameTestWarehouse();
@@ -927,7 +925,6 @@ it('does not complete an already completed stock opname', function () {
     expect($product->fresh()->stock)
         ->toBe(10);
 });
-
 
 it('does not change product stock when completing a stock opname with mixed variances', function () {
     $warehouse = createStockOpnameTestWarehouse();
@@ -1444,10 +1441,10 @@ it('rolls back stock opname completion when the completion update fails', functi
             fn () => app(StockOpnameCompletionService::class)
                 ->complete($stockOpname),
         )->toThrow(
-            \Illuminate\Database\QueryException::class,
+            QueryException::class,
         );
     } finally {
-        \Illuminate\Support\Facades\DB::statement(
+        DB::statement(
             'DROP TRIGGER IF EXISTS fail_stock_opname_completion'
         );
     }
@@ -1489,4 +1486,146 @@ it('rolls back stock opname completion when the completion update fails', functi
 
     expect($freshItem->status)
         ->toBe(StockOpnameItemStatus::STATUS_SURPLUS);
+});
+
+it('creates a completion audit with the final stock opname variance', function () {
+    $warehouse = createStockOpnameTestWarehouse();
+
+    $assignedTo = User::factory()->create();
+
+    $product = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 10,
+        sku: 'TEST-SO-AUDIT-COMPLETION',
+    );
+
+    $stockOpname = createTestStockOpname(
+        warehouse: $warehouse,
+        assignedTo: $assignedTo,
+    );
+
+    $item = createStockOpnameTestItem(
+        stockOpname: $stockOpname,
+        product: $product,
+        systemQty: 10,
+    );
+
+    $item->recordCount(
+        physicalQty: 13,
+        scannedBy: $assignedTo,
+    );
+
+    app(StockOpnameCompletionService::class)
+        ->complete($stockOpname);
+
+    $stockOpname->refresh();
+
+    expect($stockOpname->status)
+        ->toBe(StockOpnameStatus::STATUS_COMPLETED);
+
+    /*
+     * The completion audit must exist.
+     */
+    $audit = $stockOpname->auditLogs()
+        ->where('action', 'completed')
+        ->latest()
+        ->first();
+
+    expect($audit)->not->toBeNull();
+
+    /*
+     * The audit must belong to this Stock Opname.
+     */
+    expect($audit->auditable_id)
+        ->toBe($stockOpname->id);
+
+    expect($audit->auditable_type)
+        ->toBe($stockOpname->getMorphClass());
+
+    /*
+     * The recorded variance must match the final completion result.
+     */
+    expect($audit->details['variance_qty'] ?? null)
+        ->toBe(3);
+
+    /*
+     * Completing the opname must still never mutate actual stock.
+     */
+    expect($product->fresh()->stock)
+        ->toBe(10);
+});
+
+it('does not create a completion audit when stock opname completion fails', function () {
+    $warehouse = createStockOpnameTestWarehouse();
+
+    $assignedTo = User::factory()->create();
+
+    $product = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 10,
+        sku: 'TEST-SO-AUDIT-ROLLBACK',
+    );
+
+    $stockOpname = createTestStockOpname(
+        warehouse: $warehouse,
+        assignedTo: $assignedTo,
+    );
+
+    $item = createStockOpnameTestItem(
+        stockOpname: $stockOpname,
+        product: $product,
+        systemQty: 10,
+    );
+
+    $item->recordCount(
+        physicalQty: 13,
+        scannedBy: $assignedTo,
+    );
+
+    /*
+     * Force the completion update to fail inside the transaction.
+     */
+    DB::statement(
+        "CREATE TRIGGER fail_stock_opname_audit_completion
+        BEFORE UPDATE OF status ON stock_opnames
+        WHEN NEW.status = 'Completed'
+        BEGIN
+            SELECT RAISE(ABORT, 'Simulated stock opname audit failure');
+        END"
+    );
+
+    try {
+        expect(
+            fn () => app(StockOpnameCompletionService::class)
+                ->complete($stockOpname),
+        )->toThrow(
+            QueryException::class,
+        );
+    } finally {
+        DB::statement(
+            'DROP TRIGGER IF EXISTS fail_stock_opname_audit_completion'
+        );
+    }
+
+    /*
+     * Completion must not have happened.
+     */
+    expect($stockOpname->fresh()->status)
+        ->toBe(StockOpnameStatus::STATUS_IN_PROGRESS);
+
+    /*
+     * The completion audit must also not exist because the entire
+     * operation was rolled back.
+     */
+    expect(
+        $stockOpname->auditLogs()
+            ->where('action', 'completed')
+            ->exists(),
+    )->toBeFalse();
+
+    /*
+     * Product stock remains unchanged.
+     */
+    expect($product->fresh()->stock)
+        ->toBe(10);
 });
