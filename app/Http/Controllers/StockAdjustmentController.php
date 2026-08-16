@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\StockAdjustment\ApproveStockAdjustment;
 use App\Concerns\NotifiesApprovers;
 use App\Enums\StockAdjustmentStatus;
 use App\Http\Requests\StoreStockAdjustmentRequest;
@@ -89,12 +90,12 @@ class StockAdjustmentController extends Controller
             ->with('success', 'Stock adjustment created as Pending.');
     }
 
-    public function approve(StockAdjustment $stockAdjustment): RedirectResponse
+    public function approve(StockAdjustment $stockAdjustment, ApproveStockAdjustment $action): RedirectResponse
     {
         $this->authorize('approve', $stockAdjustment);
 
         try {
-            $stockAdjustment->approve();
+            $action->execute($stockAdjustment);
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
         }
