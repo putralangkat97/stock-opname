@@ -129,3 +129,39 @@ it('decreases product stock when an outbound stock adjustment is approved', func
     expect($adjustment->fresh()->status)
         ->toBe(StockAdjustmentStatus::STATUS_APPROVED);
 });
+
+it('rolls back the entire outbound stock adjustment when stock is insufficient', function () {
+    $productA = createStockAdjustmentTestProduct(
+        stock: 10,
+        sku: 'TEST-SA-SKU-A',
+    );
+
+    $productB = createStockAdjustmentTestProduct(
+        stock: 20,
+        sku: 'TEST-SA-SKU-B',
+    );
+
+    $adjustment = createTestStockAdjustment(
+        $productA,
+        StockAdjustmentType::TYPE_OUT,
+        3,
+    );
+
+    StockAdjustmentItem::query()->create([
+        'stock_adjustment_id' => $adjustment->id,
+        'product_id' => $productB->id,
+        'product_sku_snapshot' => $productB->sku,
+        'product_name_snapshot' => $productB->name,
+        'qty' => 30,
+    ]);
+
+    expect(
+        fn () => app(StockAdjustmentApprovalService::class)->approve($adjustment),
+    )->toThrow(RuntimeException::class);
+
+    expect($productA->fresh()->stock)->toBe(10);
+    expect($productB->fresh()->stock)->toBe(20);
+
+    expect($adjustment->fresh()->status)
+        ->toBe(StockAdjustmentStatus::STATUS_PENDING);
+});
