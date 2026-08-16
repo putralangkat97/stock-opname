@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\WarehouseTransfer\Services\WarehouseTransferCompletionService;
 use App\Domain\WarehouseTransfer\Services\WarehouseTransferDispatchService;
 use App\Enums\WarehouseTransferStatus;
 use App\Models\BinLocation;
@@ -123,4 +124,58 @@ it('decreases source product stock when a warehouse transfer is dispatched', fun
     expect($product->fresh()->stock)->toBe(6);
     expect($transfer->fresh()->status)
         ->toBe(WarehouseTransferStatus::STATUS_IN_TRANSIT);
+});
+
+it('creates and increases destination product stock when a warehouse transfer is completed', function () {
+    $fromWarehouse = createWarehouseTransferTestWarehouse('TEST-WT-FROM');
+    $toWarehouse = createWarehouseTransferTestWarehouse('TEST-WT-TO');
+
+    $sourceProduct = createWarehouseTransferTestProduct(
+        warehouse: $fromWarehouse,
+        stock: 10,
+    );
+
+    $transfer = createTestWarehouseTransfer(
+        product: $sourceProduct,
+        toWarehouse: $toWarehouse,
+        qty: 4,
+    );
+
+    // Dispatch first: Pending -> In Transit
+    app(WarehouseTransferDispatchService::class)->dispatch($transfer);
+
+    $receivedBy = User::factory()->create();
+
+    // The destination product should not exist before completion.
+    expect(
+        Product::query()
+            ->where('sku', $sourceProduct->sku)
+            ->where('warehouse_id', $toWarehouse->id)
+            ->exists(),
+    )->toBeFalse();
+
+    app(WarehouseTransferCompletionService::class)->complete(
+        $transfer,
+        $receivedBy->id,
+    );
+
+    $destinationProduct = Product::query()
+        ->where('sku', $sourceProduct->sku)
+        ->where('warehouse_id', $toWarehouse->id)
+        ->first();
+
+    expect($destinationProduct)->not->toBeNull();
+    expect($destinationProduct->stock)->toBe(4);
+    expect($destinationProduct->name)->toBe($sourceProduct->name);
+    expect($destinationProduct->category_id)->toBe($sourceProduct->category_id);
+    expect($destinationProduct->brand_id)->toBe($sourceProduct->brand_id);
+    expect($destinationProduct->unit_id)->toBe($sourceProduct->unit_id);
+
+    expect($transfer->fresh()->status)
+        ->toBe(WarehouseTransferStatus::STATUS_COMPLETED);
+
+    expect($transfer->fresh()->received_by)->toBe($receivedBy->id);
+
+    // Source stock was already decreased during dispatch.
+    expect($sourceProduct->fresh()->stock)->toBe(6);
 });
