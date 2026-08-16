@@ -1020,3 +1020,143 @@ it('does not change product stock when completing a stock opname with mixed vari
     expect($shortageProduct->fresh()->stock)
         ->toBe(30);
 });
+
+it('snapshots product identity and system quantity when a stock opname item is created', function () {
+    $warehouse = createStockOpnameTestWarehouse();
+
+    $assignedTo = User::factory()->create();
+
+    $product = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 25,
+        sku: 'TEST-SO-SNAPSHOT',
+    );
+
+    $stockOpname = createTestStockOpname(
+        warehouse: $warehouse,
+        assignedTo: $assignedTo,
+    );
+
+    $item = StockOpnameItem::query()->create([
+        'stock_opname_id' => $stockOpname->id,
+        'product_id' => $product->id,
+        'physical_qty' => null,
+        'status' => StockOpnameItemStatus::STATUS_UNCOUNTED,
+    ]);
+
+    $item->refresh();
+
+    expect($item->product_sku_snapshot)
+        ->toBe($product->sku);
+
+    expect($item->product_name_snapshot)
+        ->toBe($product->name);
+
+    expect($item->system_qty)
+        ->toBe(25);
+
+    expect($item->physical_qty)
+        ->toBeNull();
+
+    expect($item->status)
+        ->toBe(StockOpnameItemStatus::STATUS_UNCOUNTED);
+
+    expect($product->fresh()->stock)
+        ->toBe(25);
+});
+
+it('preserves stock opname snapshots when the product changes later', function () {
+    $warehouse = createStockOpnameTestWarehouse();
+
+    $assignedTo = User::factory()->create();
+
+    $product = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 25,
+        sku: 'TEST-SO-HISTORY',
+    );
+
+    $originalSku = $product->sku;
+    $originalName = $product->name;
+    $originalStock = $product->stock;
+
+    $stockOpname = createTestStockOpname(
+        warehouse: $warehouse,
+        assignedTo: $assignedTo,
+    );
+
+    $item = StockOpnameItem::query()->create([
+        'stock_opname_id' => $stockOpname->id,
+        'product_id' => $product->id,
+        'physical_qty' => null,
+        'status' => StockOpnameItemStatus::STATUS_UNCOUNTED,
+    ]);
+
+    // Product changes after the opname line was created.
+    $product->update([
+        'sku' => 'TEST-SO-HISTORY-CHANGED',
+        'name' => 'Changed Product Name',
+        'stock' => 40,
+    ]);
+
+    $item->refresh();
+
+    // Historical snapshot must remain unchanged.
+    expect($item->product_sku_snapshot)
+        ->toBe($originalSku);
+
+    expect($item->product_name_snapshot)
+        ->toBe($originalName);
+
+    expect($item->system_qty)
+        ->toBe($originalStock);
+
+    // The relation reflects the current product.
+    expect($item->product->fresh()->sku)
+        ->toBe('TEST-SO-HISTORY-CHANGED');
+
+    expect($item->product->fresh()->name)
+        ->toBe('Changed Product Name');
+
+    expect($item->product->fresh()->stock)
+        ->toBe(40);
+});
+
+it('does not overwrite an explicitly provided system quantity when creating a stock opname item', function () {
+    $warehouse = createStockOpnameTestWarehouse();
+
+    $assignedTo = User::factory()->create();
+
+    $product = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 25,
+        sku: 'TEST-SO-EXPLICIT-QTY',
+    );
+
+    $stockOpname = createTestStockOpname(
+        warehouse: $warehouse,
+        assignedTo: $assignedTo,
+    );
+
+    $item = StockOpnameItem::query()->create([
+        'stock_opname_id' => $stockOpname->id,
+        'product_id' => $product->id,
+        'system_qty' => 20,
+        'physical_qty' => null,
+        'status' => StockOpnameItemStatus::STATUS_UNCOUNTED,
+    ]);
+
+    $item->refresh();
+
+    expect($item->system_qty)
+        ->toBe(20);
+
+    expect($item->product_sku_snapshot)
+        ->toBe($product->sku);
+
+    expect($item->product_name_snapshot)
+        ->toBe($product->name);
+
+    expect($product->fresh()->stock)
+        ->toBe(25);
+});
