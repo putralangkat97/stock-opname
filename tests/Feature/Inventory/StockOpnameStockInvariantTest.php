@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\StockOpname\Services\StockOpnameCompletionService;
+use App\Domain\StockOpname\Services\StockOpnameVarianceService;
 use App\Enums\StockOpnameItemStatus;
 use App\Enums\StockOpnameStatus;
 use App\Models\BinLocation;
@@ -295,5 +296,349 @@ it('keeps a stock opname item uncounted when physical quantity is null', functio
     expect($item->status)
         ->toBe(StockOpnameItemStatus::STATUS_UNCOUNTED);
 
+    expect($product->fresh()->stock)->toBe(10);
+});
+
+it('calculates a matched stock opname item', function () {
+    $warehouse = createStockOpnameTestWarehouse();
+
+    $assignedTo = User::factory()->create();
+
+    $product = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 10,
+        sku: 'TEST-SO-VAR-MATCHED',
+    );
+
+    $stockOpname = createTestStockOpname(
+        warehouse: $warehouse,
+        assignedTo: $assignedTo,
+    );
+
+    $item = createStockOpnameTestItem(
+        stockOpname: $stockOpname,
+        product: $product,
+        systemQty: 10,
+    );
+
+    $item->update([
+        'physical_qty' => 10,
+    ]);
+
+    app(StockOpnameVarianceService::class)->calculate($item);
+
+    $item->refresh();
+
+    expect($item->status)
+        ->toBe(StockOpnameItemStatus::STATUS_MATCHED);
+
+    expect($item->variance)->toBe(0);
+
+    expect($product->fresh()->stock)->toBe(10);
+});
+
+it('calculates a surplus stock opname item', function () {
+    $warehouse = createStockOpnameTestWarehouse();
+
+    $assignedTo = User::factory()->create();
+
+    $product = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 10,
+        sku: 'TEST-SO-VAR-SURPLUS',
+    );
+
+    $stockOpname = createTestStockOpname(
+        warehouse: $warehouse,
+        assignedTo: $assignedTo,
+    );
+
+    $item = createStockOpnameTestItem(
+        stockOpname: $stockOpname,
+        product: $product,
+        systemQty: 10,
+    );
+
+    $item->update([
+        'physical_qty' => 13,
+    ]);
+
+    app(StockOpnameVarianceService::class)->calculate($item);
+
+    $item->refresh();
+
+    expect($item->status)
+        ->toBe(StockOpnameItemStatus::STATUS_SURPLUS);
+
+    expect($item->variance)->toBe(3);
+
+    expect($product->fresh()->stock)->toBe(10);
+});
+
+it('calculates a shortage stock opname item', function () {
+    $warehouse = createStockOpnameTestWarehouse();
+
+    $assignedTo = User::factory()->create();
+
+    $product = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 10,
+        sku: 'TEST-SO-VAR-SHORTAGE',
+    );
+
+    $stockOpname = createTestStockOpname(
+        warehouse: $warehouse,
+        assignedTo: $assignedTo,
+    );
+
+    $item = createStockOpnameTestItem(
+        stockOpname: $stockOpname,
+        product: $product,
+        systemQty: 10,
+    );
+
+    $item->update([
+        'physical_qty' => 7,
+    ]);
+
+    app(StockOpnameVarianceService::class)->calculate($item);
+
+    $item->refresh();
+
+    expect($item->status)
+        ->toBe(StockOpnameItemStatus::STATUS_SHORTAGE);
+
+    expect($item->variance)->toBe(-3);
+
+    expect($product->fresh()->stock)->toBe(10);
+});
+
+it('marks an uncounted stock opname item as uncounted', function () {
+    $warehouse = createStockOpnameTestWarehouse();
+
+    $assignedTo = User::factory()->create();
+
+    $product = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 10,
+        sku: 'TEST-SO-VAR-UNCOUNTED',
+    );
+
+    $stockOpname = createTestStockOpname(
+        warehouse: $warehouse,
+        assignedTo: $assignedTo,
+    );
+
+    $item = createStockOpnameTestItem(
+        stockOpname: $stockOpname,
+        product: $product,
+        systemQty: 10,
+    );
+
+    app(StockOpnameVarianceService::class)->calculate($item);
+
+    $item->refresh();
+
+    expect($item->physical_qty)->toBeNull();
+
+    expect($item->status)
+        ->toBe(StockOpnameItemStatus::STATUS_UNCOUNTED);
+
+    expect($product->fresh()->stock)->toBe(10);
+});
+
+it('records a matched physical count through the domain method', function () {
+    $warehouse = createStockOpnameTestWarehouse();
+
+    $assignedTo = User::factory()->create();
+    $scannedBy = User::factory()->create();
+
+    $product = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 10,
+        sku: 'TEST-SO-RECORD-MATCHED',
+    );
+
+    $stockOpname = createTestStockOpname(
+        warehouse: $warehouse,
+        assignedTo: $assignedTo,
+    );
+
+    $item = createStockOpnameTestItem(
+        stockOpname: $stockOpname,
+        product: $product,
+        systemQty: 10,
+    );
+
+    $item->recordCount(
+        physicalQty: 10,
+        scannedBy: $scannedBy,
+    );
+
+    $item->refresh();
+
+    expect($item->physical_qty)->toBe(10);
+
+    expect($item->status)
+        ->toBe(StockOpnameItemStatus::STATUS_MATCHED);
+
+    expect($item->scanned_by)->toBe($scannedBy->id);
+
+    expect($item->scanned_at)->not->toBeNull();
+
+    expect($product->fresh()->stock)->toBe(10);
+});
+
+it('records a surplus physical count through the domain method', function () {
+    $warehouse = createStockOpnameTestWarehouse();
+
+    $assignedTo = User::factory()->create();
+    $scannedBy = User::factory()->create();
+
+    $product = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 10,
+        sku: 'TEST-SO-RECORD-SURPLUS',
+    );
+
+    $stockOpname = createTestStockOpname(
+        warehouse: $warehouse,
+        assignedTo: $assignedTo,
+    );
+
+    $item = createStockOpnameTestItem(
+        stockOpname: $stockOpname,
+        product: $product,
+        systemQty: 10,
+    );
+
+    $item->recordCount(
+        physicalQty: 13,
+        scannedBy: $scannedBy,
+    );
+
+    $item->refresh();
+
+    expect($item->physical_qty)->toBe(13);
+
+    expect($item->status)
+        ->toBe(StockOpnameItemStatus::STATUS_SURPLUS);
+
+    expect($item->scanned_by)->toBe($scannedBy->id);
+
+    expect($item->scanned_at)->not->toBeNull();
+
+    expect($item->variance)->toBe(3);
+
+    expect($product->fresh()->stock)->toBe(10);
+});
+
+it('records a shortage physical count through the domain method', function () {
+    $warehouse = createStockOpnameTestWarehouse();
+
+    $assignedTo = User::factory()->create();
+    $scannedBy = User::factory()->create();
+
+    $product = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 10,
+        sku: 'TEST-SO-RECORD-SHORTAGE',
+    );
+
+    $stockOpname = createTestStockOpname(
+        warehouse: $warehouse,
+        assignedTo: $assignedTo,
+    );
+
+    $item = createStockOpnameTestItem(
+        stockOpname: $stockOpname,
+        product: $product,
+        systemQty: 10,
+    );
+
+    $item->recordCount(
+        physicalQty: 7,
+        scannedBy: $scannedBy,
+    );
+
+    $item->refresh();
+
+    expect($item->physical_qty)->toBe(7);
+
+    expect($item->status)
+        ->toBe(StockOpnameItemStatus::STATUS_SHORTAGE);
+
+    expect($item->scanned_by)->toBe($scannedBy->id);
+
+    expect($item->scanned_at)->not->toBeNull();
+
+    expect($item->variance)->toBe(-3);
+
+    expect($product->fresh()->stock)->toBe(10);
+});
+
+it('updates an existing stock opname count consistently when recounting', function () {
+    $warehouse = createStockOpnameTestWarehouse();
+
+    $assignedTo = User::factory()->create();
+    $firstScanner = User::factory()->create();
+    $secondScanner = User::factory()->create();
+
+    $product = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 10,
+        sku: 'TEST-SO-RECOUNT',
+    );
+
+    $stockOpname = createTestStockOpname(
+        warehouse: $warehouse,
+        assignedTo: $assignedTo,
+    );
+
+    $item = createStockOpnameTestItem(
+        stockOpname: $stockOpname,
+        product: $product,
+        systemQty: 10,
+    );
+
+    // First count: shortage.
+    $item->recordCount(
+        physicalQty: 8,
+        scannedBy: $firstScanner,
+    );
+
+    $item->refresh();
+
+    expect($item->physical_qty)->toBe(8);
+    expect($item->status)
+        ->toBe(StockOpnameItemStatus::STATUS_SHORTAGE);
+    expect($item->scanned_by)->toBe($firstScanner->id);
+    expect($item->scanned_at)->not->toBeNull();
+
+    $firstScannedAt = $item->scanned_at;
+
+    // Second count: now matched.
+    $item->recordCount(
+        physicalQty: 10,
+        scannedBy: $secondScanner,
+    );
+
+    $item->refresh();
+
+    expect($item->physical_qty)->toBe(10);
+
+    expect($item->status)
+        ->toBe(StockOpnameItemStatus::STATUS_MATCHED);
+
+    expect($item->scanned_by)->toBe($secondScanner->id);
+
+    expect($item->scanned_at)->not->toBeNull();
+
+    expect($item->scanned_at->greaterThanOrEqualTo($firstScannedAt))
+        ->toBeTrue();
+
+    expect($item->variance)->toBe(0);
+
+    // Recounting must still never mutate actual product stock.
     expect($product->fresh()->stock)->toBe(10);
 });
