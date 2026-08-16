@@ -1960,3 +1960,104 @@ it('preserves the completing user role snapshot when the user role changes later
     expect($stockOpname->fresh()->status)
         ->toBe(StockOpnameStatus::STATUS_COMPLETED);
 });
+
+it('creates exactly one completion audit for a stock opname', function () {
+    $warehouse = createStockOpnameTestWarehouse();
+
+    $assignedTo = User::factory()->create();
+
+    $supervisorRole = Role::query()->create([
+        'name' => 'Supervisor',
+        'guard_name' => 'web',
+    ]);
+
+    $completingUser = User::factory()->create();
+
+    $completingUser->assignRole($supervisorRole);
+
+    $product = createStockOpnameTestProduct(
+        warehouse: $warehouse,
+        stock: 10,
+        sku: 'TEST-SO-AUDIT-IDEMPOTENT',
+    );
+
+    $stockOpname = createTestStockOpname(
+        warehouse: $warehouse,
+        assignedTo: $assignedTo,
+    );
+
+    $item = createStockOpnameTestItem(
+        stockOpname: $stockOpname,
+        product: $product,
+        systemQty: 10,
+    );
+
+    $item->recordCount(
+        physicalQty: 13,
+        scannedBy: $assignedTo,
+    );
+
+    $this->actingAs($completingUser);
+
+    $service = app(StockOpnameCompletionService::class);
+
+    /*
+     * First completion creates the completion audit.
+     */
+    $service->complete($stockOpname);
+
+    $completedAuditCount = $stockOpname->auditLogs()
+        ->where('action', 'completed')
+        ->count();
+
+    expect($completedAuditCount)
+        ->toBe(1);
+
+    /*
+     * A completed Stock Opname cannot be completed again.
+     */
+    expect(fn () => $service->complete($stockOpname))
+        ->toThrow(
+            RuntimeException::class,
+            'Stock opname cannot be completed in its current state.',
+        );
+
+    /*
+     * Most importantly, the failed second attempt must NOT create
+     * another completion audit.
+     */
+    $completedAuditCount = $stockOpname->auditLogs()
+        ->where('action', 'completed')
+        ->count();
+
+    expect($completedAuditCount)
+        ->toBe(1);
+
+    /*
+     * The original audit must remain intact.
+     */
+    $audit = $stockOpname->auditLogs()
+        ->where('action', 'completed')
+        ->latest()
+        ->first();
+
+    expect($audit)->not->toBeNull();
+
+    expect($audit->user_id)
+        ->toBe($completingUser->id);
+
+    expect($audit->role_snapshot)
+        ->toBe('Supervisor');
+
+    expect($audit->details['variance_qty'] ?? null)
+        ->toBe(3);
+
+    /*
+     * Completion must still leave actual product stock untouched.
+     */
+    expect($product->fresh()->stock)
+        ->toBe(10);
+
+    expect($stockOpname->fresh()->status)
+        ->toBe(StockOpnameStatus::STATUS_COMPLETED);
+});
