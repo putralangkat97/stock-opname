@@ -2,6 +2,8 @@
 
 use App\Enums\StockOpnameStatus;
 use App\Models\StockOpname;
+use App\Models\User;
+use App\Models\Warehouse;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -10,7 +12,7 @@ uses(TestCase::class, RefreshDatabase::class);
 it('transitions a draft stock opname to in progress through its state', function () {
     $stockOpname = StockOpname::query()->create([
         'warehouse_id' => createStockOpnameTestWarehouseForState()->id,
-        'assigned_to' => \App\Models\User::factory()->create()->id,
+        'assigned_to' => User::factory()->create()->id,
         'opname_number' => 'TEST-STATE-DRAFT-'.str()->random(8),
         'title' => 'Test Stock Opname',
         'start_date' => now()->toDateString(),
@@ -30,7 +32,7 @@ it('transitions a draft stock opname to in progress through its state', function
 it('transitions a completed stock opname back to in progress when rejected', function () {
     $stockOpname = StockOpname::query()->create([
         'warehouse_id' => createStockOpnameTestWarehouseForState()->id,
-        'assigned_to' => \App\Models\User::factory()->create()->id,
+        'assigned_to' => User::factory()->create()->id,
         'opname_number' => 'TEST-STATE-COMPLETED-'.str()->random(8),
         'title' => 'Test Stock Opname',
         'start_date' => now()->toDateString(),
@@ -51,7 +53,7 @@ it('transitions a completed stock opname back to in progress when rejected', fun
 it('does not allow an in progress stock opname to be rejected', function () {
     $stockOpname = StockOpname::query()->create([
         'warehouse_id' => createStockOpnameTestWarehouseForState()->id,
-        'assigned_to' => \App\Models\User::factory()->create()->id,
+        'assigned_to' => User::factory()->create()->id,
         'opname_number' => 'TEST-STATE-IN-PROGRESS-'.str()->random(8),
         'title' => 'Test Stock Opname',
         'start_date' => now()->toDateString(),
@@ -64,7 +66,7 @@ it('does not allow an in progress stock opname to be rejected', function () {
 
     expect(fn () => $stockOpname->reject())
         ->toThrow(
-            \RuntimeException::class,
+            RuntimeException::class,
             'Stock opname cannot be rejected in its current state.',
         );
 });
@@ -72,7 +74,7 @@ it('does not allow an in progress stock opname to be rejected', function () {
 it('does not allow an approved stock opname to be started', function () {
     $stockOpname = StockOpname::query()->create([
         'warehouse_id' => createStockOpnameTestWarehouseForState()->id,
-        'assigned_to' => \App\Models\User::factory()->create()->id,
+        'assigned_to' => User::factory()->create()->id,
         'opname_number' => 'TEST-STATE-APPROVED-'.str()->random(8),
         'title' => 'Test Stock Opname',
         'start_date' => now()->toDateString(),
@@ -87,14 +89,14 @@ it('does not allow an approved stock opname to be started', function () {
 
     expect(fn () => $stockOpname->start())
         ->toThrow(
-            \RuntimeException::class,
+            RuntimeException::class,
             'Stock opname cannot be started in its current state.',
         );
 });
 
-function createStockOpnameTestWarehouseForState(): \App\Models\Warehouse
+function createStockOpnameTestWarehouseForState(): Warehouse
 {
-    return \App\Models\Warehouse::query()->create([
+    return Warehouse::query()->create([
         'code' => 'TEST-STATE-WH-'.str()->random(8),
         'name' => 'Test Warehouse',
     ]);
