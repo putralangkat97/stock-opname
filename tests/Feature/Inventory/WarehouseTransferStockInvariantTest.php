@@ -323,3 +323,33 @@ it('rolls back the entire warehouse transfer when completion fails', function ()
     expect($firstProduct->fresh()->stock)->toBe(6);
     expect($secondProduct->fresh()->stock)->toBe(4);
 });
+
+it('rejects completing a warehouse transfer unless it is in transit', function () {
+    $warehouse = createWarehouseTransferTestWarehouse();
+
+    $product = createWarehouseTransferTestProduct(
+        warehouse: $warehouse,
+        stock: 10,
+    );
+
+    $transfer = createTestWarehouseTransfer(
+        product: $product,
+        qty: 4,
+    );
+
+    expect(
+        fn () => app(WarehouseTransferCompletionService::class)
+            ->complete($transfer),
+    )->toThrow(
+        RuntimeException::class,
+        'Only an In Transit transfer can be completed.',
+    );
+
+    expect($product->fresh()->stock)->toBe(10);
+
+    expect($transfer->fresh()->status)
+        ->toBe(WarehouseTransferStatus::STATUS_PENDING);
+
+    expect($transfer->fresh()->received_by)
+        ->toBeNull();
+});
