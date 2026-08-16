@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/collapsible";
 import {
     SidebarGroup,
-    SidebarGroupLabel,
     SidebarMenu,
     SidebarMenuAction,
     SidebarMenuButton,
@@ -62,7 +61,7 @@ function isSubItemActive(url: string): boolean {
                         as-child
                         :tooltip="item.title"
                     >
-                        <Link :href="item.url">
+                        <Link :href="item.url" prefetch>
                             <component :is="item.icon" />
                             <span>{{ item.title }}</span>
                         </Link>
@@ -93,7 +92,7 @@ function isSubItemActive(url: string): boolean {
                                             isSubItemActive(subItem.url)
                                         "
                                     >
-                                        <Link :href="subItem.url">
+                                        <Link :href="subItem.url" prefetch>
                                             <component :is="subItem.icon" />
                                             <span>{{ subItem.title }}</span>
                                         </Link>
