@@ -64,41 +64,14 @@ class StockOpname extends Model
         return $this->hasMany(StockOpnameItem::class);
     }
 
-    /**
-     * Draft -> In Progress. No stock impact — this just opens the count for scanning.
-     */
     public function start(): void
     {
-        if (! $this->canStart()) {
-            throw new RuntimeException(
-                'Stock opname cannot be started in its current state.',
-            );
-        }
-
-        $this->update([
-            'status' => StockOpnameStatus::STATUS_IN_PROGRESS,
-        ]);
-
-        $this->logAudit('started');
+        $this->state()->start($this);
     }
 
-    /**
-     * Completed -> back to In Progress for a recount. Nothing to reverse —
-     * approve() never ran, so stock was never touched.
-     */
     public function reject(): void
     {
-        if (! $this->canReject()) {
-            throw new RuntimeException(
-                'Stock opname cannot be rejected in its current state.',
-            );
-        }
-
-        $this->update([
-            'status' => StockOpnameStatus::STATUS_IN_PROGRESS,
-        ]);
-
-        $this->logAudit('rejected_for_recount');
+        $this->state()->reject($this);
     }
 
     public function state(): StockOpnameState

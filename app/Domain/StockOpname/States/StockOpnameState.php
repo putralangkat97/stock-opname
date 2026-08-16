@@ -8,6 +8,8 @@ interface StockOpnameState
 {
     public function canStart(StockOpname $stockOpname): bool;
 
+    public function start(StockOpname $stockOpname): void;
+
     public function canRecordCount(StockOpname $stockOpname): bool;
 
     public function canComplete(StockOpname $stockOpname): bool;
@@ -15,4 +17,6 @@ interface StockOpnameState
     public function canApprove(StockOpname $stockOpname): bool;
 
     public function canReject(StockOpname $stockOpname): bool;
+
+    public function reject(StockOpname $stockOpname): void;
 }
