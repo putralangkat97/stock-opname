@@ -179,3 +179,62 @@ it('creates and increases destination product stock when a warehouse transfer is
     // Source stock was already decreased during dispatch.
     expect($sourceProduct->fresh()->stock)->toBe(6);
 });
+
+it('increases existing destination product stock when a warehouse transfer is completed', function () {
+    $fromWarehouse = createWarehouseTransferTestWarehouse('TEST-WT-FROM');
+    $toWarehouse = createWarehouseTransferTestWarehouse('TEST-WT-TO');
+
+    $sourceProduct = createWarehouseTransferTestProduct(
+        warehouse: $fromWarehouse,
+        stock: 10,
+    );
+
+    $destinationRack = Rack::query()->create([
+        'warehouse_id' => $toWarehouse->id,
+        'code' => 'TEST-WT-DEST-RACK-'.str()->random(8),
+    ]);
+
+    $destinationBin = BinLocation::query()->create([
+        'rack_id' => $destinationRack->id,
+        'warehouse_id' => $toWarehouse->id,
+        'code' => 'TEST-WT-DEST-BIN-'.str()->random(8),
+    ]);
+
+    $destinationProduct = Product::query()->create([
+        'category_id' => $sourceProduct->category_id,
+        'brand_id' => $sourceProduct->brand_id,
+        'unit_id' => $sourceProduct->unit_id,
+        'warehouse_id' => $toWarehouse->id,
+        'bin_location_id' => $destinationBin->id,
+        'sku' => $sourceProduct->sku,
+        'name' => $sourceProduct->name,
+        'stock' => 7,
+    ]);
+
+    $transfer = createTestWarehouseTransfer(
+        product: $sourceProduct,
+        toWarehouse: $toWarehouse,
+        qty: 4,
+    );
+
+    app(WarehouseTransferDispatchService::class)->dispatch($transfer);
+
+    $receivedBy = User::factory()->create();
+
+    app(WarehouseTransferCompletionService::class)->complete(
+        $transfer,
+        $receivedBy->id,
+    );
+
+    expect(
+        Product::query()
+            ->where('sku', $sourceProduct->sku)
+            ->where('warehouse_id', $toWarehouse->id)
+            ->count(),
+    )->toBe(1);
+
+    expect($destinationProduct->fresh()->stock)->toBe(11);
+    expect($transfer->fresh()->status)
+        ->toBe(WarehouseTransferStatus::STATUS_COMPLETED);
+    expect($sourceProduct->fresh()->stock)->toBe(6);
+});
