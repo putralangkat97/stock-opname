@@ -2,6 +2,7 @@
 
 namespace App\Domain\StockOpname\Services;
 
+use App\Domain\StockAdjustment\Services\StockAdjustmentApprovalService;
 use App\Enums\StockAdjustmentStatus;
 use App\Enums\StockAdjustmentType;
 use App\Enums\StockOpnameStatus;
@@ -14,6 +15,10 @@ use RuntimeException;
 
 final class StockOpnameApprovalService
 {
+    public function __construct(
+        private readonly StockAdjustmentApprovalService $stockAdjustmentApproval,
+    ) {}
+
     public function approve(StockOpname $stockOpname, int $approverId): void
     {
         if (! $stockOpname->canApprove()) {
@@ -92,8 +97,14 @@ final class StockOpnameApprovalService
 
         $adjustment->refresh();
 
-        // Stock mutation remains centralized in StockAdjustment.
-        $adjustment->approve();
+        // Stock mutation remains centralized — now via
+        // StockAdjustmentApprovalService rather than a model method, since
+        // StockAdjustment::approve() no longer exists after that flow's own
+        // refactor. This was the actual bug: calling the old model method
+        // here threw an uncaught Error (undefined method), not a
+        // RuntimeException, so it wasn't even caught by the controller's
+        // try/catch — every approval with a variance hard-crashed.
+        $this->stockAdjustmentApproval->approve($adjustment);
     }
 
     private function generateAdjustmentNumber(
